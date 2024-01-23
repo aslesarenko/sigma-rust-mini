@@ -26,5 +26,5 @@ bounded-vec = { workspace = true, features=["serde"] }
 
 [features]
 default = ["mnemonic_gen", "ergo-lib/compiler"]
-rest = ["tokio", "ergo-lib/rest"]
+rest = ["tokio"]
 mnemonic_gen = ["ergo-lib/mnemonic_gen"]

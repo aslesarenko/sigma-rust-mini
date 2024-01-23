@@ -22,7 +22,6 @@ ergotree-interpreter = { workspace = true }
 ergo-nipopow = { workspace = true }
 ergoscript-compiler = { workspace = true, optional = true}
 ergo-merkle-tree = { workspace = true }
-ergo-rest = { workspace = true, optional = true}
 indexmap = { workspace = true }
 base16 = { workspace = true }
 serde = { workspace = true, optional = true }
@@ -51,7 +50,6 @@ json = ["serde", "serde_json", "serde_with", "bounded-vec/serde"]
 compiler = ["ergoscript-compiler"]
 arbitrary = ["proptest", "proptest-derive", "ergotree-ir/arbitrary", "ergo-chain-types/arbitrary", "ergotree-interpreter/arbitrary"]
 mnemonic_gen = ["bitvec"]
-rest = ["ergo-rest"]
 
 [dev-dependencies]
 wasm-bindgen-test = { workspace = true }
