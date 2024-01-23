@@ -6,7 +6,6 @@ members = [
     "ergotree-ir",
     "ergotree-interpreter",
     "ergo-lib",
-    "ergo-p2p",
     "ergo-chain-types",
     "ergo-merkle-tree",
     "gf2_192",

@@ -1,3 +1,0 @@
-# Increase default (250) to fit Service::Future type
-# https://rust-lang.github.io/rust-clippy/master/index.html#type_complexity
-type-complexity-threshold = 300
