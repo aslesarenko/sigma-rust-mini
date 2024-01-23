@@ -9,7 +9,6 @@ use bounded_vec::BoundedVecOutOfBounds;
 use ergo_lib::chain::transaction::TransactionSignatureVerificationError;
 use ergo_lib::chain::transaction::TxVerifyError;
 use ergo_lib::ergo_chain_types::DigestNError;
-use ergo_lib::ergo_nipopow::NipopowProofError;
 #[cfg(feature = "rest")]
 use ergo_lib::ergo_rest::{NodeError, PeerDiscoveryError};
 use ergo_lib::ergotree_interpreter::sigma_protocol::verifier::VerifierError;
@@ -113,4 +112,3 @@ macro_rules! from_error_to_wrap_via_debug {
 }
 
 from_error_to_wrap_via_debug!(ErgoTreeConstantError);
-from_error_to_wrap_via_debug!(NipopowProofError);

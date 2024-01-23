@@ -19,7 +19,6 @@ sigma-util = { workspace = true }
 ergo-chain-types = { workspace = true }
 ergotree-ir = { workspace = true }
 ergotree-interpreter = { workspace = true }
-ergo-nipopow = { workspace = true }
 ergo-merkle-tree = { workspace = true }
 indexmap = { workspace = true }
 base16 = { workspace = true }

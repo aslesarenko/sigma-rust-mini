@@ -5,15 +5,6 @@ use ergo_lib_c_core::{
     batchmerkleproof::BatchMerkleProofPtr,
     block_header::{BlockHeader, BlockHeaderPtr, ConstBlockIdPtr},
     collections::CollectionPtr,
-    nipopow::{
-        nipopow_proof_from_json, nipopow_proof_is_better_than, nipopow_proof_suffix_head,
-        nipopow_proof_to_json, nipopow_verifier_best_chain, nipopow_verifier_best_proof,
-        nipopow_verifier_new, nipopow_verifier_process, popow_header_check_interlinks_proof,
-        popow_header_from_json, popow_header_get_header, popow_header_get_interlinks,
-        popow_header_get_interlinks_proof, popow_header_to_json, ConstNipopowProofPtr,
-        ConstNipopowVerifierPtr, ConstPoPowHeaderPtr, NipopowProofPtr, NipopowVerifierPtr,
-        PoPowHeaderPtr,
-    },
     Error,
 };
 use std::{

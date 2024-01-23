@@ -12,7 +12,6 @@ use super::node_conf::NodeConf;
 use crate::{
     block_header::{BlockHeader, BlockId},
     error_conversion::to_js,
-    nipopow::NipopowProof,
     transaction::TxId,
 };
 use bounded_vec::NonEmptyVec;
