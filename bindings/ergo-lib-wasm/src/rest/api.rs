@@ -77,31 +77,6 @@ pub fn get_nipopow_proof_by_header_id(
     })
 }
 
-#[wasm_bindgen]
-/// GET on /blocks/{header_id}/proofFor/{tx_id} to request the merkle proof for a given transaction
-/// that belongs to the given header ID.
-pub fn get_blocks_header_id_proof_for_tx_id(
-    node: &NodeConf,
-    header_id: &BlockId,
-    tx_id: &TxId,
-) -> js_sys::Promise {
-    let header_id_cloned = header_id.0.clone();
-    let tx_id_cloned = tx_id.0.clone();
-    #[allow(clippy::clone_on_copy)]
-    let node_cloned = node.0.clone();
-    wasm_bindgen_futures::future_to_promise(async move {
-        let merkle_proof = ergo_lib::ergo_rest::api::node::get_blocks_header_id_proof_for_tx_id(
-            node_cloned,
-            header_id_cloned,
-            tx_id_cloned,
-        )
-        .await
-        .map_err(to_js)
-        .map(|m| m.map(crate::merkleproof::MerkleProof))?;
-        Ok(wasm_bindgen::JsValue::from(merkle_proof))
-    })
-}
-
 /// List of peer urls returned from `peer_discovery`. We need this wrapper struct because the
 /// `wasm_bindgen` macro currently cannot deal with `Result<Box<[T]>, JsValue>`, for any value `T`
 /// that can be converted into a `JsValue` (`Result<Box<[web_sys::Url]>, JsValue>` would be a

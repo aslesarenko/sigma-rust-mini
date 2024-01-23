@@ -1,38 +1,13 @@
 use crate::{delete_ptr, ErrorPtr};
 /// Used for verifying transactions and blocks
-use ergo_lib_c_core::{merkleproof::*, Error};
+use ergo_lib_c_core::{Error};
 use std::convert::TryFrom;
 use std::{
     ffi::{CStr, CString},
     os::raw::c_char,
 };
 
-/// Creates a new MerkleProof with given leaf data. Use ergo_merkle_proof_add_node to add levelnodes to the proof. leaf_data must be 32 bytes
-#[no_mangle]
-pub unsafe extern "C" fn ergo_merkle_proof_new(
-    leaf_data: *const u8,
-    len: usize,
-    proof_out: *mut MerkleProofPtr,
-) -> ErrorPtr {
-    let leaf_data = std::slice::from_raw_parts(leaf_data, len);
-    Error::c_api_from(merkleproof_new(leaf_data, proof_out))
-}
-
 /// Adds a new node (above the current level). Hash must be exactly 32 bytes. side represents the side node is on in the tree, 0 = Left, 1 = Right
-#[no_mangle]
-pub unsafe extern "C" fn ergo_merkle_proof_add_node(
-    proof: MerkleProofPtr,
-    hash: *const u8,
-    hash_len: usize,
-    side: u8,
-) -> ErrorPtr {
-    let hash = std::slice::from_raw_parts(hash, hash_len);
-    let side = match NodeSide::try_from(side) {
-        Ok(side) => side,
-        Err(err) => return Error::c_api_from(Err(Error::InvalidArgument(err))),
-    };
-    Error::c_api_from(merkleproof_add_node(proof, hash, side))
-}
 
 /// Checks the merkleproof against the expected root_hash
 #[no_mangle]

@@ -7,7 +7,6 @@ members = [
     "ergotree-interpreter",
     "ergo-lib",
     "ergo-chain-types",
-    "ergo-merkle-tree",
     "gf2_192",
     "bindings/ergo-lib-wasm",
     "bindings/ergo-lib-c-core",
@@ -26,7 +25,6 @@ ergotree-ir = { version = "^0.27.1", path = "./ergotree-ir" }
 ergo-chain-types = { version = "^0.14.1", path = "./ergo-chain-types" }
 sigma-test-util = { version = "^0.3.0", path = "./sigma-test-util" }
 ergotree-interpreter = { version = "^0.27.1", path = "./ergotree-interpreter" }
-ergo-merkle-tree = { version = "^0.14.1", path = "./ergo-merkle-tree" }
 ergo-lib = { version = "^0.27.1", path = "./ergo-lib"}
 k256 = { version = "0.13.1", features = ["arithmetic", "ecdsa"] }
 elliptic-curve = { version = "0.12", features = ["ff"] }

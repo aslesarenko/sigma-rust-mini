@@ -29,8 +29,6 @@ pub mod wallet;
 
 /// Ergo blockchain types
 pub extern crate ergo_chain_types;
-/// Ergo Merkle Tree and Merkle verification tools
-pub extern crate ergo_merkle_tree;
 /// Re-exported types from dependencies
 #[cfg(feature = "rest")]
 pub extern crate ergo_rest;

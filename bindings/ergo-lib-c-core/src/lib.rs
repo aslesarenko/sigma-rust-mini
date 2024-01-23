@@ -11,7 +11,6 @@
 #![allow(clippy::missing_safety_doc)]
 
 pub mod address;
-pub mod batchmerkleproof;
 pub mod block_header;
 pub mod box_builder;
 pub mod box_selector;
@@ -28,7 +27,6 @@ pub mod ext_secret_key;
 pub mod header;
 pub mod input;
 mod json;
-pub mod merkleproof;
 pub mod reduced;
 pub mod secret_key;
 pub mod token;

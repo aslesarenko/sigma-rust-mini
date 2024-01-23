@@ -15,7 +15,6 @@
 #[macro_use]
 mod macros;
 mod address;
-mod batchmerkleproof;
 mod block_header;
 mod box_builder;
 mod box_selector;
@@ -30,7 +29,6 @@ mod ergo_tree;
 mod ext_secret_key;
 mod header;
 mod input;
-mod merkleproof;
 
 mod reduced;
 
@@ -44,7 +42,6 @@ mod tx_builder;
 mod wallet;
 
 pub use crate::address::*;
-pub use crate::batchmerkleproof::*;
 pub use crate::block_header::*;
 pub use crate::box_builder::*;
 pub use crate::box_selector::*;
@@ -57,7 +54,6 @@ pub use crate::ergo_state_ctx::*;
 pub use crate::ergo_tree::*;
 pub use crate::header::*;
 pub use crate::input::*;
-pub use crate::merkleproof::*;
 pub use crate::reduced::*;
 pub use crate::secret_key::*;
 pub use crate::token::*;
