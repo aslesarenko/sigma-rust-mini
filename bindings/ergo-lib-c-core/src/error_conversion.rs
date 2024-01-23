@@ -8,7 +8,6 @@ use bounded_vec::BoundedVecOutOfBounds;
 use ergo_lib::chain::transaction::TransactionError;
 use ergo_lib::ergo_chain_types::DigestNError;
 use ergo_lib::ergo_nipopow::NipopowProofError;
-use ergo_lib::ergoscript_compiler::compiler::CompileError;
 use ergo_lib::ergotree_interpreter::sigma_protocol::verifier::VerifierError;
 use ergo_lib::ergotree_ir::chain::address::AddressEncoderError;
 use ergo_lib::ergotree_ir::chain::address::AddressError;
@@ -67,7 +66,6 @@ macro_rules! convert_error_via_debug {
     };
 }
 
-convert_error_via_debug!(CompileError);
 convert_error_via_debug!(ErgoTreeError);
 convert_error_via_debug!(ErgoTreeConstantError);
 convert_error_via_debug!(ParseIntError);

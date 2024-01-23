@@ -20,7 +20,6 @@ ergo-chain-types = { workspace = true }
 ergotree-ir = { workspace = true }
 ergotree-interpreter = { workspace = true }
 ergo-nipopow = { workspace = true }
-ergoscript-compiler = { workspace = true, optional = true}
 ergo-merkle-tree = { workspace = true }
 indexmap = { workspace = true }
 base16 = { workspace = true }
@@ -47,7 +46,6 @@ itertools = { workspace = true }
 [features]
 default = ["json"]
 json = ["serde", "serde_json", "serde_with", "bounded-vec/serde"]
-compiler = ["ergoscript-compiler"]
 arbitrary = ["proptest", "proptest-derive", "ergotree-ir/arbitrary", "ergo-chain-types/arbitrary", "ergotree-interpreter/arbitrary"]
 mnemonic_gen = ["bitvec"]
 

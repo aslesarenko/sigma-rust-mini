@@ -7,8 +7,6 @@ use ergo_lib_c_core::{
 };
 use paste::paste;
 
-use std::{ffi::CStr, os::raw::c_char};
-
 use crate::delete_ptr;
 
 /// Create new contract from ErgoTree
@@ -32,16 +30,6 @@ pub unsafe extern "C" fn ergo_lib_contract_pay_to_address(
 }
 
 /// Compiles a contract from ErgoScript source code
-#[no_mangle]
-pub unsafe extern "C" fn ergo_lib_contract_compile(
-    source: *const c_char,
-    contract_out: *mut ContractPtr,
-) -> ErrorPtr {
-    let source = CStr::from_ptr(source).to_string_lossy();
-    let res = contract_compile(&source, contract_out);
-    Error::c_api_from(res)
-}
-
 /// Get the ErgoTree of the contract
 #[no_mangle]
 pub unsafe extern "C" fn ergo_lib_contract_ergo_tree(

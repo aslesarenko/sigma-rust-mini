@@ -40,13 +40,5 @@ impl Contract {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use super::*;
 
-    #[cfg(feature = "compiler")]
-    #[test]
-    fn compile() {
-        let contract =
-            Contract::compile("HEIGHT", ergoscript_compiler::script_env::ScriptEnv::new()).unwrap();
-        dbg!(&contract);
-    }
 }

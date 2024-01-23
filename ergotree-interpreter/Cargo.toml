@@ -52,7 +52,6 @@ arbitrary = [
 
 [dev-dependencies]
 ergotree-ir = { workspace = true, features = ["arbitrary"] }
-ergoscript-compiler = { workspace = true }
 proptest = { workspace = true }
 sigma-test-util = { workspace = true }
 expect-test = { workspace = true }

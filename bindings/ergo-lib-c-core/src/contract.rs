@@ -1,6 +1,6 @@
 //! Contract, for easier ErgoTree generation
 
-use ergo_lib::{chain, ergoscript_compiler::script_env::ScriptEnv};
+use ergo_lib::{chain};
 
 use crate::{
     address::ConstAddressPtr,
@@ -36,14 +36,6 @@ pub unsafe fn contract_pay_to_address(
     let address = const_ptr_as_ref(address_ptr, "address_ptr")?;
     let contract_out = mut_ptr_as_mut(contract_out, "contract_out")?;
     let inner = chain::contract::Contract::pay_to_address(&address.0)?;
-    *contract_out = Box::into_raw(Box::new(Contract(inner)));
-    Ok(())
-}
-
-/// Compiles a contract from ErgoScript source code
-pub unsafe fn contract_compile(source: &str, contract_out: *mut ContractPtr) -> Result<(), Error> {
-    let contract_out = mut_ptr_as_mut(contract_out, "contract_out")?;
-    let inner = chain::contract::Contract::compile(source, ScriptEnv::new())?;
     *contract_out = Box::into_raw(Box::new(Contract(inner)));
     Ok(())
 }

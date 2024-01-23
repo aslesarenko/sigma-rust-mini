@@ -31,19 +31,10 @@ mod tests {
     use crate::eval::context::Context;
     use crate::eval::tests::eval_out;
     use ergo_chain_types::EcPoint;
-    use ergoscript_compiler::compiler::compile_expr;
-    use ergoscript_compiler::script_env::ScriptEnv;
     use ergotree_ir::chain::ergo_box::ErgoBox;
     use sigma_test_util::force_any_val;
 
     use super::*;
-
-    #[test]
-    fn eval_height() {
-        let ctx = Rc::new(force_any_val::<Context>());
-        let expr = compile_expr("HEIGHT", ScriptEnv::new()).unwrap();
-        assert_eq!(eval_out::<i32>(&expr, ctx.clone()), ctx.height as i32);
-    }
 
     #[test]
     fn eval_self_box() {
