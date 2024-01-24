@@ -42,12 +42,13 @@ itertools = { workspace = true }
 
 
 [features]
-default = ["json"]
+default = ["json", "arbitrary"]
 json = ["serde", "serde_json", "serde_with", "bounded-vec/serde"]
 arbitrary = ["proptest", "proptest-derive", "ergotree-ir/arbitrary", "ergo-chain-types/arbitrary", "ergotree-interpreter/arbitrary"]
 mnemonic_gen = ["bitvec"]
 
 [dev-dependencies]
+proptest = { workspace = true }
 wasm-bindgen-test = { workspace = true }
 ergotree-ir = { workspace = true, features = ["arbitrary"] }
 ergotree-interpreter = { workspace = true, features = ["arbitrary"] }

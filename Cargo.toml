@@ -8,7 +8,6 @@ members = [
     "ergo-lib",
     "ergo-chain-types",
     "gf2_192",
-    "bindings/ergo-lib-wasm",
 ]
 
 [workspace.package]
