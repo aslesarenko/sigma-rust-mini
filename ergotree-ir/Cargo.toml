@@ -40,7 +40,7 @@ strum_macros = "0.21"
 miette = { workspace = true }
 
 [features]
-default = ["json"]
+default = ["json", "arbitrary"]
 arbitrary = ["proptest", "proptest-derive", "ergo-chain-types/arbitrary"]
 json = ["serde", "serde_json", "serde_with", "bounded-vec/serde"]
 

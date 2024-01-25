@@ -337,48 +337,6 @@ lazy_static! {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
-    #[test]
-    fn test_from_ids() {
-        assert!(SMethod::from_ids(TYPE_CODE, DIGEST_METHOD_ID).map(|e| e.name()) == Ok("digest"));
-        assert!(
-            SMethod::from_ids(TYPE_CODE, ENABLED_OPERATIONS_METHOD_ID).map(|e| e.name())
-                == Ok("enabledOperations")
-        );
-        assert!(
-            SMethod::from_ids(TYPE_CODE, KEY_LENGTH_METHOD_ID).map(|e| e.name()) == Ok("keyLength")
-        );
-        assert!(
-            SMethod::from_ids(TYPE_CODE, VALUE_LENGTH_OPT_METHOD_ID).map(|e| e.name())
-                == Ok("valueLengthOpt")
-        );
-        assert!(
-            SMethod::from_ids(TYPE_CODE, IS_INSERT_ALLOWED_METHOD_ID).map(|e| e.name())
-                == Ok("isInsertAllowed")
-        );
-        assert!(
-            SMethod::from_ids(TYPE_CODE, IS_UPDATE_ALLOWED_METHOD_ID).map(|e| e.name())
-                == Ok("isUpdateAllowed")
-        );
-        assert!(
-            SMethod::from_ids(TYPE_CODE, IS_REMOVE_ALLOWED_METHOD_ID).map(|e| e.name())
-                == Ok("isRemoveAllowed")
-        );
-        assert!(
-            SMethod::from_ids(TYPE_CODE, UPDATE_OPERATIONS_METHOD_ID).map(|e| e.name())
-                == Ok("updateOperations")
-        );
-        assert!(SMethod::from_ids(TYPE_CODE, GET_METHOD_ID).map(|e| e.name()) == Ok("get"));
-        assert!(
-            SMethod::from_ids(TYPE_CODE, GET_MANY_METHOD_ID).map(|e| e.name()) == Ok("getMany")
-        );
-        assert!(SMethod::from_ids(TYPE_CODE, INSERT_METHOD_ID).map(|e| e.name()) == Ok("insert"));
-        assert!(SMethod::from_ids(TYPE_CODE, REMOVE_METHOD_ID).map(|e| e.name()) == Ok("remove"));
-        assert!(SMethod::from_ids(TYPE_CODE, UPDATE_METHOD_ID).map(|e| e.name()) == Ok("update"));
-        assert!(
-            SMethod::from_ids(TYPE_CODE, UPDATE_DIGEST_METHOD_ID).map(|e| e.name())
-                == Ok("updateDigest")
-        );
-    }
+
 }

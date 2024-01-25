@@ -1,6 +1,5 @@
 //! Sigma byte stream writer
 use super::constant_store::ConstantStore;
-use super::val_def_type_store::ValDefTypeStore;
 use sigma_ser::vlq_encode::ReadSigmaVlqExt;
 use std::io::Cursor;
 use std::io::Read;
@@ -10,7 +9,6 @@ pub struct SigmaByteReader<R> {
     inner: R,
     constant_store: ConstantStore,
     substitute_placeholders: bool,
-    val_def_type_store: ValDefTypeStore,
 }
 
 impl<R: Read> SigmaByteReader<R> {
@@ -20,7 +18,6 @@ impl<R: Read> SigmaByteReader<R> {
             inner: pr,
             constant_store,
             substitute_placeholders: false,
-            val_def_type_store: ValDefTypeStore::new(),
         }
     }
 
@@ -34,7 +31,6 @@ impl<R: Read> SigmaByteReader<R> {
             inner: pr,
             constant_store,
             substitute_placeholders: true,
-            val_def_type_store: ValDefTypeStore::new(),
         }
     }
 }
@@ -45,7 +41,6 @@ pub fn from_bytes<T: AsRef<[u8]>>(bytes: T) -> SigmaByteReader<Cursor<T>> {
         inner: Cursor::new(bytes),
         constant_store: ConstantStore::empty(),
         substitute_placeholders: false,
-        val_def_type_store: ValDefTypeStore::new(),
     }
 }
 
@@ -60,8 +55,6 @@ pub trait SigmaByteRead: ReadSigmaVlqExt {
     /// Set new constant store
     fn set_constant_store(&mut self, constant_store: ConstantStore);
 
-    /// ValDef types store (resolves tpe on ValUse parsing)
-    fn val_def_type_store(&mut self) -> &mut ValDefTypeStore;
 }
 
 impl<R: Read> Read for SigmaByteReader<R> {
@@ -83,7 +76,4 @@ impl<R: ReadSigmaVlqExt> SigmaByteRead for SigmaByteReader<R> {
         self.constant_store = constant_store;
     }
 
-    fn val_def_type_store(&mut self) -> &mut ValDefTypeStore {
-        &mut self.val_def_type_store
-    }
 }

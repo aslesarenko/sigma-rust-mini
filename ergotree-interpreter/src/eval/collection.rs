@@ -6,18 +6,17 @@ use ergotree_ir::mir::value::NativeColl;
 use ergotree_ir::mir::value::Value;
 use ergotree_ir::types::stype::SType;
 
-use crate::eval::env::Env;
 use crate::eval::EvalContext;
 use crate::eval::EvalError;
 use crate::eval::Evaluable;
 
 impl Evaluable for Collection {
-    fn eval(&self, env: &mut Env, ctx: &mut EvalContext) -> Result<Value, EvalError> {
+    fn eval(&self, ctx: &mut EvalContext) -> Result<Value, EvalError> {
         Ok(match self {
             Collection::BoolConstants(bools) => bools.clone().into(),
             Collection::Exprs { elem_tpe, items } => {
                 let items_v: Result<Vec<Value>, EvalError> =
-                    items.iter().map(|i| i.eval(env, ctx)).collect();
+                    items.iter().map(|i| i.eval(ctx)).collect();
                 match elem_tpe {
                     SType::SByte => {
                         let bytes: Result<Vec<i8>, TryExtractFromError> = items_v?

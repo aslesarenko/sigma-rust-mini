@@ -17,7 +17,6 @@ use std::sync::Arc;
 use crate::ergotree_ir::chain::ergo_box::BoxId;
 use crate::wallet::multi_sig::TransactionHintsBag;
 use ergotree_interpreter::eval::context::{Context, TxIoVec};
-use ergotree_interpreter::eval::env::Env;
 use ergotree_interpreter::sigma_protocol::prover::ProverError;
 use ergotree_interpreter::sigma_protocol::prover::ProverResult;
 use ergotree_interpreter::sigma_protocol::prover::{ContextExtension, Prover};
@@ -263,7 +262,6 @@ pub fn sign_tx_input(
     prover
         .prove(
             &input_box.ergo_tree,
-            &Env::empty(),
             ctx,
             message_to_sign,
             &hints_bag,
@@ -323,7 +321,6 @@ mod tests {
                 .unwrap();
             let res = verifier.verify(
                 &b.ergo_tree,
-                &Env::empty(),
                 Rc::new(force_any_val::<Context>()),
                 input.spending_proof.proof.clone(),
                 &message,
@@ -560,7 +557,6 @@ mod tests {
         let verifier = TestVerifier;
         let ver_res = verifier.verify(
             &ergo_tree,
-            &Env::empty(),
             Rc::new(force_any_val::<Context>()),
             tx.inputs.get(1).unwrap().spending_proof.proof.clone(),
             message.as_slice(),

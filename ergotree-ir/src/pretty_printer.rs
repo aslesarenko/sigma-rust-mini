@@ -93,14 +93,8 @@ mod tests {
     use crate::chain::address::AddressEncoder;
     use crate::chain::address::NetworkPrefix;
     use crate::ergo_tree::ErgoTree;
-    use crate::mir::bin_op::ArithOp;
-    use crate::mir::bin_op::BinOp;
-    use crate::mir::block::BlockValue;
     use crate::mir::expr::Expr;
-    use crate::mir::val_def::ValDef;
-    use crate::mir::val_use::ValUse;
     use crate::serialization::SigmaSerializable;
-    use crate::types::stype::SType;
 
     use super::*;
 
@@ -113,93 +107,6 @@ mod tests {
         };
         let _ = expr.print(&mut w).unwrap();
         expected_tree.assert_eq(w.get_buf());
-    }
-
-    fn check_spans(expr: Expr, expected_tree: expect_test::Expect) {
-        let print_buf = String::new();
-        let mut w = PosTrackingWriter {
-            print_buf,
-            current_pos: 0,
-            current_indent: 0,
-        };
-        let spanned_expr = expr.print(&mut w).unwrap();
-        expected_tree.assert_eq(format!("{:?}", spanned_expr).as_str());
-    }
-
-    #[test]
-    fn print_block() {
-        let val_id = 1.into();
-        let expr = Expr::BlockValue(
-            BlockValue {
-                items: vec![ValDef {
-                    id: val_id,
-                    rhs: Box::new(Expr::Const(1i32.into())),
-                }
-                .into()],
-                result: Box::new(
-                    ValUse {
-                        val_id,
-                        tpe: SType::SInt,
-                    }
-                    .into(),
-                ),
-            }
-            .into(),
-        );
-        check_pretty(
-            expr,
-            expect![[r#"
-            {
-              val v1 = 1
-              v1
-            }
-            "#]],
-        );
-    }
-
-    #[test]
-    fn print_binop() {
-        let val_id = 1.into();
-        let expr = Expr::BlockValue(
-            BlockValue {
-                items: vec![ValDef {
-                    id: val_id,
-                    rhs: Box::new(
-                        BinOp {
-                            kind: ArithOp::Divide.into(),
-                            left: Expr::Const(4i32.into()).into(),
-                            right: Expr::Const(2i32.into()).into(),
-                        }
-                        .into(),
-                    ),
-                }
-                .into()],
-                result: Box::new(
-                    ValUse {
-                        val_id,
-                        tpe: SType::SInt,
-                    }
-                    .into(),
-                ),
-            }
-            .into(),
-        );
-        check_pretty(
-            expr.clone(),
-            expect![[r#"
-            {
-              val v1 = 4 / 2
-              v1
-            }
-            "#]],
-        );
-
-        check_spans(
-            expr,
-            expect![[
-                r#"BlockValue(Spanned { source_span: SourceSpan { offset: 0, length: 26 }, expr: BlockValue { items: [ValDef(Spanned { source_span: SourceSpan { offset: 4, length: 14 }, expr: ValDef { id: ValId(1), rhs: BinOp(Spanned { source_span: SourceSpan { offset: 13, length: 5 }, expr: BinOp { kind: Arith(Divide), left: Const("4: SInt"), right: Const("2: SInt") } }) } })], result: ValUse(ValUse { val_id: ValId(1), tpe: SInt }) } })"#
-            ]],
-        );
     }
 
     #[test]

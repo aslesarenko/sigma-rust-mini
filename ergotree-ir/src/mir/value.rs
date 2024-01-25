@@ -20,8 +20,6 @@ use super::constant::Literal;
 use super::constant::TryExtractFrom;
 use super::constant::TryExtractFromError;
 use super::constant::TryExtractInto;
-use super::expr::Expr;
-use super::func_value::FuncArg;
 
 extern crate derive_more;
 use derive_more::From;
@@ -124,15 +122,6 @@ where
     }
 }
 
-/// Lambda
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub struct Lambda {
-    /// Argument placeholders
-    pub args: Vec<FuncArg>,
-    /// Body
-    pub body: Box<Expr>,
-}
-
 /// Runtime value
 #[derive(PartialEq, Eq, Debug, Clone, From)]
 pub enum Value {
@@ -172,8 +161,6 @@ pub enum Value {
     Global,
     /// Optional value
     Opt(Box<Option<Value>>),
-    /// lambda
-    Lambda(Lambda),
 }
 
 impl Value {
@@ -300,7 +287,6 @@ impl std::fmt::Display for Value {
             Value::Header(_) => write!(f, "HEADER"),
             Value::PreHeader(_) => write!(f, "PREHEADER"),
             Value::Global => write!(f, "GLOBAL"),
-            Value::Lambda(v) => write!(f, "{v:?}"),
         }
     }
 }

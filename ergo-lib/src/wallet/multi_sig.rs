@@ -2,7 +2,6 @@
 use crate::chain::ergo_state_context::ErgoStateContext;
 use crate::chain::transaction::unsigned::UnsignedTransaction;
 use crate::chain::transaction::Transaction;
-use crate::ergotree_interpreter::eval::env::Env;
 use crate::ergotree_interpreter::eval::reduce_to_crypto;
 use crate::ergotree_interpreter::sigma_protocol::dht_protocol::interactive_prover as dht_interactive_prover;
 use crate::ergotree_interpreter::sigma_protocol::dlog_protocol::interactive_prover as dlog_interactive_prover;
@@ -256,7 +255,7 @@ pub fn generate_commitments(
             .proposition()
             .map_err(ProverError::ErgoTreeError)
             .map_err(|e| TxSigningError::ProverError(e, i))?;
-        let reduction_result = reduce_to_crypto(&exp, &Env::empty(), ctx)
+        let reduction_result = reduce_to_crypto(&exp, ctx)
             .map_err(ProverError::EvalError)
             .map_err(|e| TxSigningError::ProverError(e, i))?;
 
@@ -284,7 +283,7 @@ pub fn extract_hints(
             .proposition()
             .map_err(ProverError::ErgoTreeError)
             .map_err(|e| TxSigningError::ProverError(e, i))?;
-        let reduction_result = reduce_to_crypto(&exp, &Env::empty(), ctx)
+        let reduction_result = reduce_to_crypto(&exp, ctx)
             .map_err(ProverError::EvalError)
             .map_err(|e| TxSigningError::ProverError(e, i))?;
         let sigma_tree = reduction_result.sigma_prop;
@@ -389,29 +388,20 @@ mod tests {
     use super::*;
     use crate::chain::transaction::Transaction;
     use crate::ergotree_interpreter::eval::context::Context;
-    use crate::ergotree_interpreter::eval::env::Env;
     use crate::ergotree_interpreter::eval::reduce_to_crypto;
     use crate::ergotree_interpreter::sigma_protocol::private_input::{
-        DlogProverInput, PrivateInput,
+        DlogProverInput
     };
-    use crate::ergotree_interpreter::sigma_protocol::prover::{ProofBytes, Prover, TestProver};
-    use crate::ergotree_interpreter::sigma_protocol::verifier::{TestVerifier, Verifier};
+    use crate::ergotree_interpreter::sigma_protocol::prover::{ProofBytes};
+    // use crate::ergotree_interpreter::sigma_protocol::verifier::{TestVerifier, Verifier};
     use crate::ergotree_ir::chain::address::AddressEncoder;
     use crate::ergotree_ir::chain::address::{Address, NetworkPrefix};
     use crate::ergotree_ir::ergo_tree::ErgoTree;
-    use crate::ergotree_ir::mir::expr::Expr;
-    use crate::ergotree_ir::mir::sigma_and::SigmaAnd;
     use crate::ergotree_ir::serialization::SigmaSerializable;
     use crate::ergotree_ir::sigma_protocol::sigma_boolean::cand::Cand;
     use ergo_chain_types::Base16DecodedBytes;
     use ergotree_interpreter::sigma_protocol::private_input::DhTupleProverInput;
     use ergotree_interpreter::sigma_protocol::wscalar::Wscalar;
-    use ergotree_ir::mir::atleast::Atleast;
-    use ergotree_ir::mir::constant::{Constant, Literal};
-    use ergotree_ir::mir::sigma_or::SigmaOr;
-    use ergotree_ir::mir::value::CollKind;
-    use ergotree_ir::sigma_protocol::sigma_boolean::SigmaProp;
-    use ergotree_ir::types::stype::SType;
     use sigma_test_util::force_any_val;
     use std::convert::{TryFrom, TryInto};
     use std::rc::Rc;
@@ -468,7 +458,7 @@ mod tests {
 
         let contx = Rc::new(force_any_val::<Context>());
         let exp = tree_m.proposition().unwrap();
-        let reduction_result = reduce_to_crypto(&exp, &Env::empty(), contx).unwrap();
+        let reduction_result = reduce_to_crypto(&exp, contx).unwrap();
         let sigma_tree = reduction_result.sigma_prop;
         let stx: Transaction = serde_json::from_str(signed_tx).unwrap();
         let test: ProofBytes = stx.inputs.first().clone().spending_proof.proof;
@@ -654,1124 +644,1110 @@ mod tests {
         }
     }
 
-    #[test]
-    fn multi_sig_2() {
-        let ctx = Rc::new(force_any_val::<Context>());
-
-        let secret1 = DlogProverInput::random();
-        let secret2 = DlogProverInput::random();
-        let pk1 = secret1.public_image();
-        let pk2 = secret2.public_image();
-        let prover1 = TestProver {
-            secrets: vec![PrivateInput::DlogProverInput(secret1)],
-        };
-        let prover2 = TestProver {
-            secrets: vec![PrivateInput::DlogProverInput(secret2)],
-        };
-        let expr: Expr = SigmaAnd::new(vec![
-            Expr::Const(pk1.clone().into()),
-            Expr::Const(pk2.clone().into()),
-        ])
-        .unwrap()
-        .into();
-        let tree_and = ErgoTree::try_from(expr.clone()).unwrap();
-
-        let cand = reduce_to_crypto(&expr, &Env::empty(), ctx.clone())
-            .unwrap()
-            .sigma_prop;
-        let generate_for: Vec<SigmaBoolean> = vec![SigmaBoolean::ProofOfKnowledge(
-            SigmaProofOfKnowledgeTree::ProveDlog(pk2),
-        )];
-        let hints_from_bob: HintsBag = generate_commitments_for(&cand, &generate_for);
-        let bag1 = hints_from_bob.real_commitments();
-        let own = hints_from_bob.own_commitments();
-        let message = vec![0u8; 100];
-        let mut bag_a = HintsBag { hints: vec![] };
-        bag_a.add_hint(Hint::CommitmentHint(CommitmentHint::RealCommitment(
-            bag1.first().unwrap().clone(),
-        )));
-
-        let proof1 = prover1
-            .prove(
-                &tree_and,
-                &Env::empty(),
-                ctx.clone(),
-                message.as_slice(),
-                &bag_a,
-            )
-            .unwrap();
-        let proof: Vec<u8> = Vec::from(proof1.proof);
-        let real_proposition: Vec<SigmaBoolean> = vec![SigmaBoolean::ProofOfKnowledge(
-            SigmaProofOfKnowledgeTree::ProveDlog(pk1),
-        )];
-        let simulated_proposition: Vec<SigmaBoolean> = Vec::new();
-        let mut bag_b =
-            bag_for_multi_sig(&cand, &real_proposition, &simulated_proposition, &proof).unwrap();
-        bag_b.add_hint(Hint::CommitmentHint(CommitmentHint::OwnCommitment(
-            own.first().unwrap().clone(),
-        )));
-        let proof2 = prover2
-            .prove(
-                &tree_and,
-                &Env::empty(),
-                ctx.clone(),
-                message.as_slice(),
-                &bag_b,
-            )
-            .unwrap();
-        let proof_byte: ProofBytes = proof2.proof;
-        let verifier = TestVerifier;
-
-        assert!(
-            verifier
-                .verify(
-                    &tree_and,
-                    &Env::empty(),
-                    ctx,
-                    proof_byte,
-                    message.as_slice(),
-                )
-                .unwrap()
-                .result,
-            "{}",
-            "{}"
-        );
-    }
-
-    #[test]
-    fn multi_sig_and_3() {
-        let ctx = Rc::new(force_any_val::<Context>());
-
-        let secret1 = DlogProverInput::random();
-        let secret2 = DlogProverInput::random();
-        let secret3 = DlogProverInput::random();
-        let pk1 = secret1.public_image();
-        let pk2 = secret2.public_image();
-        let pk3 = secret3.public_image();
-        let prover1 = TestProver {
-            secrets: vec![PrivateInput::DlogProverInput(secret1)],
-        };
-        let prover2 = TestProver {
-            secrets: vec![PrivateInput::DlogProverInput(secret2)],
-        };
-        let prover3 = TestProver {
-            secrets: vec![PrivateInput::DlogProverInput(secret3)],
-        };
-
-        let expr: Expr = SigmaAnd::new(vec![
-            Expr::Const(pk1.clone().into()),
-            Expr::Const(pk2.clone().into()),
-            Expr::Const(pk3.clone().into()),
-        ])
-        .unwrap()
-        .into();
-
-        let tree_expr = ErgoTree::try_from(expr.clone()).unwrap();
-
-        let expr_reduced = reduce_to_crypto(&expr, &Env::empty(), ctx.clone())
-            .unwrap()
-            .sigma_prop;
-        let mut generate_for: Vec<SigmaBoolean> = vec![SigmaBoolean::ProofOfKnowledge(
-            SigmaProofOfKnowledgeTree::ProveDlog(pk2),
-        )];
-        let hints_from_bob: HintsBag = generate_commitments_for(&expr_reduced, &generate_for);
-        let bag2 = hints_from_bob.real_commitments();
-        let bob_secret_commitment = hints_from_bob.own_commitments();
-        generate_for = vec![SigmaBoolean::ProofOfKnowledge(
-            SigmaProofOfKnowledgeTree::ProveDlog(pk3.clone()),
-        )];
-        let hints_from_carol: HintsBag = generate_commitments_for(&expr_reduced, &generate_for);
-        let bag3 = hints_from_carol.real_commitments();
-        let carol_secret_commitment = hints_from_carol.own_commitments();
-        let message = vec![0u8; 100];
-        let mut bag_a = HintsBag { hints: vec![] };
-        bag_a.add_hint(Hint::CommitmentHint(CommitmentHint::RealCommitment(
-            bag2.first().unwrap().clone(),
-        )));
-        bag_a.add_hint(Hint::CommitmentHint(CommitmentHint::RealCommitment(
-            bag3.first().unwrap().clone(),
-        )));
-        let proof1 = prover1
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                message.as_slice(),
-                &bag_a,
-            )
-            .unwrap();
-        let mut proof: Vec<u8> = Vec::from(proof1.proof.clone());
-        let proof_byte1: ProofBytes = proof1.proof;
-        let mut real_proposition: Vec<SigmaBoolean> = vec![SigmaBoolean::ProofOfKnowledge(
-            SigmaProofOfKnowledgeTree::ProveDlog(pk1.clone()),
-        )];
-        let simulated_proposition: Vec<SigmaBoolean> = Vec::new();
-        let mut bag_c = bag_for_multi_sig(
-            &expr_reduced,
-            &real_proposition,
-            &simulated_proposition,
-            &proof,
-        )
-        .unwrap();
-        bag_c.add_hint(Hint::CommitmentHint(CommitmentHint::OwnCommitment(
-            carol_secret_commitment.first().unwrap().clone(),
-        )));
-        bag_c.add_hint(Hint::CommitmentHint(CommitmentHint::RealCommitment(
-            bag2.first().unwrap().clone(),
-        )));
-        let proof3 = prover3
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                message.as_slice(),
-                &bag_c,
-            )
-            .unwrap();
-        proof = Vec::from(proof3.proof.clone());
-        let proof_byte3: ProofBytes = proof3.proof;
-        real_proposition = vec![
-            SigmaBoolean::ProofOfKnowledge(SigmaProofOfKnowledgeTree::ProveDlog(pk1)),
-            SigmaBoolean::ProofOfKnowledge(SigmaProofOfKnowledgeTree::ProveDlog(pk3)),
-        ];
-        let mut bag_b = bag_for_multi_sig(
-            &expr_reduced,
-            &real_proposition,
-            &simulated_proposition,
-            &proof,
-        )
-        .unwrap();
-        bag_b.add_hint(Hint::CommitmentHint(CommitmentHint::OwnCommitment(
-            bob_secret_commitment.first().unwrap().clone(),
-        )));
-        let proof2 = prover2
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                message.as_slice(),
-                &bag_b,
-            )
-            .unwrap();
-        let proof_byte2: ProofBytes = proof2.proof;
-        let verifier = TestVerifier;
-
-        assert!(
-            !verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx.clone(),
-                    proof_byte1,
-                    message.as_slice(),
-                )
-                .unwrap()
-                .result,
-            "{}",
-            "{}"
-        );
-
-        assert!(
-            !verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx.clone(),
-                    proof_byte3,
-                    message.as_slice(),
-                )
-                .unwrap()
-                .result,
-            "{}",
-            "{}"
-        );
-
-        assert!(
-            verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx,
-                    proof_byte2,
-                    message.as_slice(),
-                )
-                .unwrap()
-                .result,
-            "{}",
-            "{}"
-        );
-    }
-
-    #[test]
-    fn multi_dlog_dht() {
-        let ctx = Rc::new(force_any_val::<Context>());
-
-        let secret_alice = DlogProverInput::random();
-        let secret_bob = DlogProverInput::random();
-        let secret_carol = DhTupleProverInput::random();
-        let secret_dave = DhTupleProverInput::random();
-
-        let pk_alice = secret_alice.public_image();
-        let pk_bob = secret_bob.public_image();
-        let pk_carol = secret_carol.public_image();
-        let pk_dave = secret_dave.public_image();
-        let prover_a = TestProver {
-            secrets: vec![PrivateInput::DlogProverInput(secret_alice)],
-        };
-        let _prover_b = TestProver {
-            secrets: vec![PrivateInput::DlogProverInput(secret_bob)],
-        };
-        let _prover_c = TestProver {
-            secrets: vec![PrivateInput::DhTupleProverInput(secret_carol.clone())],
-        };
-        let _prover_d = TestProver {
-            secrets: vec![PrivateInput::DhTupleProverInput(secret_dave.clone())],
-        };
-        let first_expr: Expr = SigmaOr::new(vec![
-            Expr::Const(pk_alice.clone().into()),
-            Expr::Const(pk_bob.clone().into()),
-        ])
-        .unwrap()
-        .into();
-        let second_expr: Expr = SigmaOr::new(vec![
-            Expr::Const(pk_carol.clone().into()),
-            Expr::Const(pk_dave.clone().into()),
-        ])
-        .unwrap()
-        .into();
-        let exp: Expr = SigmaAnd::new(vec![first_expr, second_expr]).unwrap().into();
-        let tree = ErgoTree::try_from(exp.clone()).unwrap();
-        let ctree = reduce_to_crypto(&exp, &Env::empty(), ctx.clone())
-            .unwrap()
-            .sigma_prop;
-        let mut generate_for: Vec<SigmaBoolean> = vec![SigmaBoolean::ProofOfKnowledge(
-            SigmaProofOfKnowledgeTree::ProveDlog(pk_alice.clone()),
-        )];
-        let alice_hints: HintsBag = generate_commitments_for(&ctree, &generate_for);
-        let secret_commitment_alice = alice_hints.own_commitments();
-        generate_for = vec![SigmaBoolean::ProofOfKnowledge(
-            SigmaProofOfKnowledgeTree::ProveDhTuple(pk_dave.clone()),
-        )];
-        let dave_hints: HintsBag = generate_commitments_for(&ctree, &generate_for);
-        let dave_known = dave_hints.real_commitments();
-        let _dave_secret_commitment = dave_hints.own_commitments();
-        let message = vec![0u8; 100];
-        let mut bag_a = HintsBag::empty();
-        bag_a.add_hint(Hint::CommitmentHint(CommitmentHint::OwnCommitment(
-            secret_commitment_alice.first().unwrap().clone(),
-        )));
-        bag_a.add_hint(Hint::CommitmentHint(CommitmentHint::RealCommitment(
-            dave_known.first().unwrap().clone(),
-        )));
-        let proof_a = prover_a
-            .prove(
-                &tree,
-                &Env::empty(),
-                ctx.clone(),
-                message.as_slice(),
-                &bag_a,
-            )
-            .unwrap();
-        let proof: Vec<u8> = Vec::from(proof_a.proof.clone());
-        let proof_byte_a: ProofBytes = proof_a.proof;
-        let verifier = TestVerifier;
-
-        assert!(
-            !verifier
-                .verify(
-                    &tree,
-                    &Env::empty(),
-                    ctx.clone(),
-                    proof_byte_a,
-                    message.as_slice(),
-                )
-                .unwrap()
-                .result,
-            "{}",
-            "{}"
-        );
-        let real_proposition: Vec<SigmaBoolean> = vec![SigmaBoolean::ProofOfKnowledge(
-            SigmaProofOfKnowledgeTree::ProveDlog(pk_alice),
-        )];
-        let simulated_proposition: Vec<SigmaBoolean> = vec![
-            SigmaBoolean::ProofOfKnowledge(SigmaProofOfKnowledgeTree::ProveDlog(pk_bob.clone())),
-            SigmaBoolean::ProofOfKnowledge(SigmaProofOfKnowledgeTree::ProveDhTuple(
-                pk_carol.clone(),
-            )),
-        ];
-        println!(
-            "{:?}",
-            SigmaBoolean::ProofOfKnowledge(SigmaProofOfKnowledgeTree::ProveDlog(pk_bob))
-        );
-        let mut bag =
-            bag_for_multi_sig(&ctree, &real_proposition, &simulated_proposition, &proof).unwrap();
-        bag.add_hint(Hint::CommitmentHint(CommitmentHint::OwnCommitment(
-            _dave_secret_commitment.first().unwrap().clone(),
-        )));
-
-        let proof_d = _prover_d
-            .prove(&tree, &Env::empty(), ctx.clone(), message.as_slice(), &bag)
-            .unwrap();
-        let proof_byte_d: ProofBytes = proof_d.proof;
-
-        assert!(
-            verifier
-                .verify(&tree, &Env::empty(), ctx, proof_byte_d, message.as_slice(),)
-                .unwrap()
-                .result,
-            "{}",
-            "{}"
-        );
-    }
-
-    #[test]
-    fn multi_sig_atleast_2_out_of_3() {
-        // from https://github.com/ScorexFoundation/sigmastate-interpreter/blob/78dd1e715038c2f95c518fb56977c6591b76e20c/sc/src/test/scala/sigmastate/utxo/DistributedSigSpecification.scala#L124
-        let ctx = Rc::new(force_any_val::<Context>());
-
-        let alice_secret = DlogProverInput::random();
-        let bob_secret = DlogProverInput::random();
-        let carol_secret = DlogProverInput::random();
-        let alice_pk = alice_secret.public_image();
-        let bob_pk = bob_secret.public_image();
-        let carol_pk = carol_secret.public_image();
-        let alice_prover = TestProver {
-            secrets: vec![PrivateInput::DlogProverInput(alice_secret)],
-        };
-        let bob_prover = TestProver {
-            secrets: vec![PrivateInput::DlogProverInput(bob_secret)],
-        };
-        let _carol_prover = TestProver {
-            secrets: vec![PrivateInput::DlogProverInput(carol_secret)],
-        };
-
-        let bound = Expr::Const(2i32.into());
-        let inputs = Literal::Coll(
-            CollKind::from_vec(
-                SType::SSigmaProp,
-                vec![
-                    SigmaProp::from(alice_pk.clone()).into(),
-                    SigmaProp::from(bob_pk.clone()).into(),
-                    SigmaProp::from(carol_pk.clone()).into(),
-                ],
-            )
-            .unwrap(),
-        );
-        let input = Constant {
-            tpe: SType::SColl(SType::SSigmaProp.into()),
-            v: inputs,
-        }
-        .into();
-        let expr: Expr = Atleast::new(bound, input).unwrap().into();
-
-        let tree_expr = ErgoTree::try_from(expr.clone()).unwrap();
-
-        let expr_reduced = reduce_to_crypto(&expr, &Env::empty(), ctx.clone())
-            .unwrap()
-            .sigma_prop;
-        let message = vec![0u8; 100];
-
-        let hints_from_bob: HintsBag = generate_commitments_for(&expr_reduced, &[bob_pk.into()]);
-
-        let bob_real_commitment = hints_from_bob.real_commitments();
-
-        let mut bag_a = HintsBag { hints: vec![] };
-        bag_a.add_hint(Hint::CommitmentHint(CommitmentHint::RealCommitment(
-            bob_real_commitment.first().unwrap().clone(),
-        )));
-
-        let proof_alice = alice_prover
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                message.as_slice(),
-                &bag_a,
-            )
-            .unwrap();
-
-        let mut bag_b = bag_for_multi_sig(
-            &expr_reduced,
-            &[alice_pk.into()],
-            &[carol_pk.into()],
-            proof_alice.proof.as_ref(),
-        )
-        .unwrap();
-        bag_b.add_hint(Hint::CommitmentHint(CommitmentHint::OwnCommitment(
-            hints_from_bob.own_commitments().first().unwrap().clone(),
-        )));
-
-        let proof_bob = bob_prover
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                message.as_slice(),
-                &bag_b,
-            )
-            .unwrap();
-
-        let verifier = TestVerifier;
-
-        assert!(
-            !verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx.clone(),
-                    proof_alice.proof,
-                    message.as_slice(),
-                )
-                .unwrap()
-                .result,
-            "Proof generated by Alice without getting Bob's part is not correct"
-        );
-
-        assert!(
-            verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx,
-                    proof_bob.proof,
-                    message.as_slice(),
-                )
-                .unwrap()
-                .result,
-            "Compound proof from Bob is correct"
-        );
-    }
-
-    #[test]
-    fn multi_sig_atleast_3_out_of_4() {
-        // from https://github.com/ScorexFoundation/sigmastate-interpreter/blob/78dd1e715038c2f95c518fb56977c6591b76e20c/sc/src/test/scala/sigmastate/utxo/DistributedSigSpecification.scala#L160-L205
-
-        let ctx = Rc::new(force_any_val::<Context>());
-
-        let alice_secret = DlogProverInput::random();
-        let bob_secret = DlogProverInput::random();
-        let carol_secret = DlogProverInput::random();
-        let dave_secret = DlogProverInput::random();
-        let alice_pk = alice_secret.public_image();
-        let bob_pk = bob_secret.public_image();
-        let carol_pk = carol_secret.public_image();
-        let dave_pk = dave_secret.public_image();
-        let alice_prover = TestProver {
-            secrets: vec![PrivateInput::DlogProverInput(alice_secret)],
-        };
-        let bob_prover = TestProver {
-            secrets: vec![PrivateInput::DlogProverInput(bob_secret)],
-        };
-        let _carol_prover = TestProver {
-            secrets: vec![PrivateInput::DlogProverInput(carol_secret)],
-        };
-
-        let bound = Expr::Const(3i32.into());
-        let inputs = Literal::Coll(
-            CollKind::from_vec(
-                SType::SSigmaProp,
-                vec![
-                    SigmaProp::from(alice_pk.clone()).into(),
-                    SigmaProp::from(bob_pk.clone()).into(),
-                    SigmaProp::from(carol_pk.clone()).into(),
-                    SigmaProp::from(dave_pk.clone()).into(),
-                ],
-            )
-            .unwrap(),
-        );
-        let input = Constant {
-            tpe: SType::SColl(SType::SSigmaProp.into()),
-            v: inputs,
-        }
-        .into();
-        let expr: Expr = Atleast::new(bound, input).unwrap().into();
-
-        let tree_expr = ErgoTree::try_from(expr.clone()).unwrap();
-
-        let expr_reduced = reduce_to_crypto(&expr, &Env::empty(), ctx.clone())
-            .unwrap()
-            .sigma_prop;
-        let message = vec![0u8; 100];
-
-        let bob_hints: HintsBag = generate_commitments_for(&expr_reduced, &[bob_pk.into()]);
-        let dl_b_known = bob_hints.real_commitments().first().unwrap().clone();
-
-        let carol_hints: HintsBag =
-            generate_commitments_for(&expr_reduced, &[carol_pk.clone().into()]);
-        let dl_c_known = carol_hints.real_commitments().first().unwrap().clone();
-
-        let bag_a = HintsBag {
-            hints: vec![dl_b_known.clone().into(), dl_c_known.into()],
-        };
-
-        let proof_alice = alice_prover
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                message.as_slice(),
-                &bag_a,
-            )
-            .unwrap();
-
-        let mut bag_c = bag_for_multi_sig(
-            &expr_reduced,
-            &[alice_pk.clone().into()],
-            &[dave_pk.clone().into()],
-            proof_alice.proof.as_ref(),
-        )
-        .unwrap();
-        bag_c.hints.push(dl_b_known.into());
-        bag_c.hints.push(
-            carol_hints
-                .own_commitments()
-                .first()
-                .unwrap()
-                .clone()
-                .into(),
-        );
-
-        let proof_carol = _carol_prover
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                message.as_slice(),
-                &bag_c,
-            )
-            .unwrap();
-
-        let bag_b_1 = bag_for_multi_sig(
-            &expr_reduced,
-            &[alice_pk.into()],
-            &[dave_pk.into()],
-            proof_alice.proof.as_ref(),
-        )
-        .unwrap();
-
-        let bag_b_2 = bag_for_multi_sig(
-            &expr_reduced,
-            &[carol_pk.into()],
-            &[],
-            proof_carol.proof.as_ref(),
-        )
-        .unwrap();
-
-        let mut bag_b = HintsBag::from_bags(vec![bag_b_1, bag_b_2]);
-
-        bag_b.add_hint(bob_hints.own_commitments().first().unwrap().clone().into());
-
-        let proof_bob = bob_prover
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                message.as_slice(),
-                &bag_b,
-            )
-            .unwrap();
-
-        let verifier = TestVerifier;
-
-        assert!(
-            !verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx.clone(),
-                    proof_alice.proof,
-                    message.as_slice(),
-                )
-                .unwrap()
-                .result,
-            "Proof generated by Alice without getting Bob's part is not correct"
-        );
-
-        assert!(
-            !verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx.clone(),
-                    proof_carol.proof,
-                    message.as_slice(),
-                )
-                .unwrap()
-                .result,
-            "Proof generated by Carol without getting Bob's part is not correct"
-        );
-
-        assert!(
-            verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx,
-                    proof_bob.proof,
-                    message.as_slice(),
-                )
-                .unwrap()
-                .result,
-            "Compound proof from Bob is correct"
-        );
-    }
-
-    #[test]
-    fn multi_sig_atleast_7_out_of_10_i692() {
-        // based on
-        // https://github.com/ScorexFoundation/sigmastate-interpreter/blob/78dd1e715038c2f95c518fb56977c6591b76e20c/sc/src/test/scala/sigmastate/utxo/DistributedSigSpecification.scala#L299-L389
-        let ctx = Rc::new(force_any_val::<Context>());
-
-        let sk1 = DlogProverInput::random();
-        let pk1 = sk1.public_image();
-        let sk2 = DlogProverInput::random();
-        let pk2 = sk2.public_image();
-        let sk3 = DlogProverInput::random();
-        let pk3 = sk3.public_image();
-        let sk4 = DlogProverInput::random();
-        let pk4 = sk4.public_image();
-        let sk5 = DlogProverInput::random();
-        let pk5 = sk5.public_image();
-        let sk6 = DlogProverInput::random();
-        let pk6 = sk6.public_image();
-        let sk7 = DlogProverInput::random();
-        let pk7 = sk7.public_image();
-        let sk8 = DlogProverInput::random();
-        let pk8 = sk8.public_image();
-        let sk9 = DlogProverInput::random();
-        let pk9 = sk9.public_image();
-        let sk10 = DlogProverInput::random();
-        let pk10 = sk10.public_image();
-
-        let prover1 = TestProver {
-            secrets: vec![sk1.into()],
-        };
-        let prover2 = TestProver {
-            secrets: vec![sk2.into()],
-        };
-        let prover3 = TestProver {
-            secrets: vec![sk3.into()],
-        };
-        let prover4 = TestProver {
-            secrets: vec![sk4.into()],
-        };
-        let prover5 = TestProver {
-            secrets: vec![sk5.into()],
-        };
-        let prover6 = TestProver {
-            secrets: vec![sk6.into()],
-        };
-        let prover7 = TestProver {
-            secrets: vec![sk7.into()],
-        };
-        // let prover8 = TestProver {
-        //     secrets: vec![sk8.into()],
-        // };
-        // let prover9 = TestProver {
-        //     secrets: vec![sk9.into()],
-        // };
-        // let prover10 = TestProver {
-        //     secrets: vec![sk10.into()],
-        // };
-
-        let bound = Expr::Const(7i32.into());
-        let input = Constant {
-            tpe: SType::SColl(SType::SSigmaProp.into()),
-            v: Literal::Coll(
-                CollKind::from_vec(
-                    SType::SSigmaProp,
-                    vec![
-                        SigmaProp::from(pk1.clone()).into(),
-                        SigmaProp::from(pk2.clone()).into(),
-                        SigmaProp::from(pk3.clone()).into(),
-                        SigmaProp::from(pk4.clone()).into(),
-                        SigmaProp::from(pk5.clone()).into(),
-                        SigmaProp::from(pk6.clone()).into(),
-                        SigmaProp::from(pk7.clone()).into(),
-                        SigmaProp::from(pk8.clone()).into(),
-                        SigmaProp::from(pk9.clone()).into(),
-                        SigmaProp::from(pk10.clone()).into(),
-                    ],
-                )
-                .unwrap(),
-            ),
-        }
-        .into();
-        let expr: Expr = Atleast::new(bound, input).unwrap().into();
-        let tree_expr = ErgoTree::try_from(expr.clone()).unwrap();
-        let expr_reduced = reduce_to_crypto(&expr, &Env::empty(), ctx.clone())
-            .unwrap()
-            .sigma_prop;
-        let message = vec![0u8; 100];
-
-        // only actors 1, 2, 3, 4, 5, 6, 7 are signing, others are simulated (see bag_one below)
-
-        let hints_1 = generate_commitments_for(&expr_reduced, &[pk1.clone().into()]);
-        let dl_1_known = hints_1.real_commitments().first().unwrap().clone();
-        let secret_cmt_1 = hints_1.own_commitments().first().unwrap().clone();
-
-        let hints_2 = generate_commitments_for(&expr_reduced, &[pk2.clone().into()]);
-        let dl_2_known = hints_2.real_commitments().first().unwrap().clone();
-        let secret_cmt_2 = hints_2.own_commitments().first().unwrap().clone();
-
-        let hints_3 = generate_commitments_for(&expr_reduced, &[pk3.clone().into()]);
-        let dl_3_known = hints_3.real_commitments().first().unwrap().clone();
-        let secret_cmt_3 = hints_3.own_commitments().first().unwrap().clone();
-
-        let hints_4 = generate_commitments_for(&expr_reduced, &[pk4.clone().into()]);
-        let dl_4_known = hints_4.real_commitments().first().unwrap().clone();
-        let secret_cmt_4 = hints_4.own_commitments().first().unwrap().clone();
-
-        let hints_5 = generate_commitments_for(&expr_reduced, &[pk5.clone().into()]);
-        let dl_5_known = hints_5.real_commitments().first().unwrap().clone();
-        let secret_cmt_5 = hints_5.own_commitments().first().unwrap().clone();
-
-        let hints_6 = generate_commitments_for(&expr_reduced, &[pk6.clone().into()]);
-        let dl_6_known = hints_6.real_commitments().first().unwrap().clone();
-        let secret_cmt_6 = hints_6.own_commitments().first().unwrap().clone();
-
-        let hints_7 = generate_commitments_for(&expr_reduced, &[pk7.clone().into()]);
-        let secret_cmt_7 = hints_7.own_commitments().first().unwrap().clone();
-
-        let bag_7 = HintsBag {
-            hints: vec![
-                dl_1_known.clone().into(),
-                dl_2_known.clone().into(),
-                dl_3_known.clone().into(),
-                dl_4_known.clone().into(),
-                dl_5_known.clone().into(),
-                dl_6_known.clone().into(),
-                secret_cmt_7.clone().into(),
-            ],
-        };
-
-        let proof_7 = prover7
-            .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_7)
-            .unwrap();
-
-        let verifier = TestVerifier;
-
-        assert!(
-            !verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx.clone(),
-                    proof_7.proof.clone(),
-                    message.as_slice(),
-                )
-                .unwrap()
-                .result,
-            "Proof generated by Prover7 only is not correct"
-        );
-
-        //hints after the first real proof done.
-        let bag_one = bag_for_multi_sig(
-            &expr_reduced,
-            &[pk7.into()],
-            &[pk8.into(), pk9.into(), pk10.into()],
-            proof_7.proof.as_ref(),
-        )
-        .unwrap();
-
-        //now real proofs can be done in any order
-        let mut bag_2 = bag_one.clone();
-        bag_2.add_hint(secret_cmt_2.clone().into());
-        bag_2.add_hint(dl_1_known.clone().into());
-        bag_2.add_hint(dl_3_known.clone().into());
-        bag_2.add_hint(dl_4_known.clone().into());
-        bag_2.add_hint(dl_5_known.clone().into());
-        bag_2.add_hint(dl_6_known.clone().into());
-        let proof_2 = prover2
-            .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_2)
-            .unwrap();
-        let partial_proof_2 =
-            bag_for_multi_sig(&expr_reduced, &[pk2.into()], &[], proof_2.proof.as_ref())
-                .unwrap()
-                .real_proofs()
-                .first()
-                .unwrap()
-                .clone();
-
-        let mut bag_1 = bag_one.clone();
-        bag_1.add_hint(secret_cmt_1.clone().into());
-        bag_1.add_hint(dl_2_known.clone().into());
-        bag_1.add_hint(dl_3_known.clone().into());
-        bag_1.add_hint(dl_4_known.clone().into());
-        bag_1.add_hint(dl_5_known.clone().into());
-        bag_1.add_hint(dl_6_known.clone().into());
-
-        let proof_1 = prover1
-            .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_1)
-            .unwrap();
-        let partial_proof_1 =
-            bag_for_multi_sig(&expr_reduced, &[pk1.into()], &[], proof_1.proof.as_ref())
-                .unwrap()
-                .real_proofs()
-                .first()
-                .unwrap()
-                .clone();
-
-        let mut bag_3 = bag_one.clone();
-        bag_3.add_hint(secret_cmt_3.clone().into());
-        bag_3.add_hint(dl_1_known.clone().into());
-        bag_3.add_hint(dl_2_known.clone().into());
-        bag_3.add_hint(dl_4_known.clone().into());
-        bag_3.add_hint(dl_5_known.clone().into());
-        bag_3.add_hint(dl_6_known.clone().into());
-        let proof_3 = prover3
-            .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_3)
-            .unwrap();
-        let partial_proof_3 =
-            bag_for_multi_sig(&expr_reduced, &[pk3.into()], &[], proof_3.proof.as_ref())
-                .unwrap()
-                .real_proofs()
-                .first()
-                .unwrap()
-                .clone();
-
-        let mut bag_4 = bag_one.clone();
-        bag_4.add_hint(secret_cmt_4.clone().into());
-        bag_4.add_hint(dl_1_known.clone().into());
-        bag_4.add_hint(dl_2_known.clone().into());
-        bag_4.add_hint(dl_3_known.clone().into());
-        bag_4.add_hint(dl_5_known.clone().into());
-        bag_4.add_hint(dl_6_known.clone().into());
-        let proof_4 = prover4
-            .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_4)
-            .unwrap();
-        let partial_proof_4 =
-            bag_for_multi_sig(&expr_reduced, &[pk4.into()], &[], proof_4.proof.as_ref())
-                .unwrap()
-                .real_proofs()
-                .first()
-                .unwrap()
-                .clone();
-
-        let mut bag_5 = bag_one.clone();
-        bag_5.add_hint(secret_cmt_5.clone().into());
-        bag_5.add_hint(dl_1_known.clone().into());
-        bag_5.add_hint(dl_2_known.clone().into());
-        bag_5.add_hint(dl_3_known.clone().into());
-        bag_5.add_hint(dl_4_known.clone().into());
-        bag_5.add_hint(dl_6_known.clone().into());
-        let proof_5 = prover5
-            .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_5)
-            .unwrap();
-        let partial_proof_5 =
-            bag_for_multi_sig(&expr_reduced, &[pk5.into()], &[], proof_5.proof.as_ref())
-                .unwrap()
-                .real_proofs()
-                .first()
-                .unwrap()
-                .clone();
-
-        let mut bag_6 = bag_one.clone();
-        bag_6.add_hint(secret_cmt_6.clone().into());
-        bag_6.add_hint(dl_1_known.clone().into());
-        bag_6.add_hint(dl_2_known.clone().into());
-        bag_6.add_hint(dl_3_known.clone().into());
-        bag_6.add_hint(dl_4_known.clone().into());
-        bag_6.add_hint(dl_5_known.clone().into());
-        let proof_6 = prover6
-            .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_6)
-            .unwrap();
-        let partial_proof_6 =
-            bag_for_multi_sig(&expr_reduced, &[pk6.into()], &[], proof_6.proof.as_ref())
-                .unwrap()
-                .real_proofs()
-                .first()
-                .unwrap()
-                .clone();
-
-        let mut bag = bag_one;
-        bag.add_hint(partial_proof_1.into());
-        bag.add_hint(partial_proof_2.into());
-        bag.add_hint(partial_proof_3.into());
-        bag.add_hint(partial_proof_4.into());
-        bag.add_hint(partial_proof_5.into());
-        bag.add_hint(partial_proof_6.into());
-        bag.add_hint(dl_1_known.into());
-        bag.add_hint(dl_2_known.into());
-        bag.add_hint(dl_3_known.into());
-        bag.add_hint(dl_4_known.into());
-        bag.add_hint(dl_5_known.into());
-        bag.add_hint(dl_6_known.into());
-
-        let mut valid_bag_1 = bag.clone();
-        valid_bag_1.add_hint(secret_cmt_1.into());
-        let valid_proof_1 = prover1
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                &message,
-                &valid_bag_1,
-            )
-            .unwrap();
-
-        assert!(
-            verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx.clone(),
-                    valid_proof_1.proof.clone(),
-                    message.as_slice(),
-                )
-                .unwrap()
-                .result,
-        );
-
-        let mut valid_bag_2 = bag.clone();
-        valid_bag_2.add_hint(secret_cmt_2.into());
-        let valid_proof_2 = prover2
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                &message,
-                &valid_bag_2,
-            )
-            .unwrap();
-        assert!(
-            verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx.clone(),
-                    valid_proof_2.proof.clone(),
-                    message.as_slice(),
-                )
-                .unwrap()
-                .result,
-        );
-
-        let mut valid_bag_3 = bag.clone();
-        valid_bag_3.add_hint(secret_cmt_3.into());
-        let valid_proof_3 = prover3
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                &message,
-                &valid_bag_3,
-            )
-            .unwrap();
-        assert!(
-            verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx.clone(),
-                    valid_proof_3.proof.clone(),
-                    message.as_slice()
-                )
-                .unwrap()
-                .result
-        );
-
-        let mut valid_bag_4 = bag.clone();
-        valid_bag_4.add_hint(secret_cmt_4.into());
-        let valid_proof_4 = prover4
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                &message,
-                &valid_bag_4,
-            )
-            .unwrap();
-        assert!(
-            verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx.clone(),
-                    valid_proof_4.proof.clone(),
-                    message.as_slice()
-                )
-                .unwrap()
-                .result
-        );
-
-        let mut valid_bag_5 = bag.clone();
-        valid_bag_5.add_hint(secret_cmt_5.into());
-        let valid_proof_5 = prover5
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                &message,
-                &valid_bag_5,
-            )
-            .unwrap();
-        assert!(
-            verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx.clone(),
-                    valid_proof_5.proof.clone(),
-                    message.as_slice()
-                )
-                .unwrap()
-                .result
-        );
-
-        let mut valid_bag_6 = bag.clone();
-        valid_bag_6.add_hint(secret_cmt_6.into());
-        let valid_proof_6 = prover6
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                &message,
-                &valid_bag_6,
-            )
-            .unwrap();
-        assert!(
-            verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx.clone(),
-                    valid_proof_6.proof.clone(),
-                    message.as_slice()
-                )
-                .unwrap()
-                .result
-        );
-
-        let mut valid_bag_7 = bag.clone();
-        valid_bag_7.add_hint(secret_cmt_7.into());
-        let valid_proof_7 = prover7
-            .prove(
-                &tree_expr,
-                &Env::empty(),
-                ctx.clone(),
-                &message,
-                &valid_bag_7,
-            )
-            .unwrap();
-        assert!(
-            verifier
-                .verify(
-                    &tree_expr,
-                    &Env::empty(),
-                    ctx,
-                    valid_proof_7.proof.clone(),
-                    message.as_slice()
-                )
-                .unwrap()
-                .result
-        );
-
-        assert_eq!(valid_proof_1.proof, valid_proof_2.proof);
-        assert_eq!(valid_proof_2.proof, valid_proof_3.proof);
-        assert_eq!(valid_proof_3.proof, valid_proof_4.proof);
-        assert_eq!(valid_proof_4.proof, valid_proof_5.proof);
-        assert_eq!(valid_proof_5.proof, valid_proof_6.proof);
-        assert_eq!(valid_proof_6.proof, valid_proof_7.proof);
-    }
+    // TODO mini: restore tests that was here before minification (see git history of this file)
+    // #[test]
+    // fn multi_sig_2() {
+    //     let ctx = Rc::new(force_any_val::<Context>());
+    //
+    //     let secret1 = DlogProverInput::random();
+    //     let secret2 = DlogProverInput::random();
+    //     let pk1 = secret1.public_image();
+    //     let pk2 = secret2.public_image();
+    //     let prover1 = TestProver {
+    //         secrets: vec![PrivateInput::DlogProverInput(secret1)],
+    //     };
+    //     let prover2 = TestProver {
+    //         secrets: vec![PrivateInput::DlogProverInput(secret2)],
+    //     };
+    //     let expr = SigmaConjecture::Cand(sigma_protocol::sigma_boolean::Cand::normalized(vec![
+    //         pk1.clone().into(),
+    //         pk2.clone().into(),
+    //     ]))
+    //     .unwrap()
+    //     .into();
+    //     let tree_and = ErgoTree::try_from(expr.clone()).unwrap();
+    //
+    //     let cand = reduce_to_crypto(&expr, ctx.clone())
+    //         .unwrap()
+    //         .sigma_prop;
+    //     let generate_for: Vec<SigmaBoolean> = vec![SigmaBoolean::ProofOfKnowledge(
+    //         SigmaProofOfKnowledgeTree::ProveDlog(pk2),
+    //     )];
+    //     let hints_from_bob: HintsBag = generate_commitments_for(&cand, &generate_for);
+    //     let bag1 = hints_from_bob.real_commitments();
+    //     let own = hints_from_bob.own_commitments();
+    //     let message = vec![0u8; 100];
+    //     let mut bag_a = HintsBag { hints: vec![] };
+    //     bag_a.add_hint(Hint::CommitmentHint(CommitmentHint::RealCommitment(
+    //         bag1.first().unwrap().clone(),
+    //     )));
+    //
+    //     let proof1 = prover1
+    //         .prove(
+    //             &tree_and,
+    //             ctx.clone(),
+    //             message.as_slice(),
+    //             &bag_a,
+    //         )
+    //         .unwrap();
+    //     let proof: Vec<u8> = Vec::from(proof1.proof);
+    //     let real_proposition: Vec<SigmaBoolean> = vec![SigmaBoolean::ProofOfKnowledge(
+    //         SigmaProofOfKnowledgeTree::ProveDlog(pk1),
+    //     )];
+    //     let simulated_proposition: Vec<SigmaBoolean> = Vec::new();
+    //     let mut bag_b =
+    //         bag_for_multi_sig(&cand, &real_proposition, &simulated_proposition, &proof).unwrap();
+    //     bag_b.add_hint(Hint::CommitmentHint(CommitmentHint::OwnCommitment(
+    //         own.first().unwrap().clone(),
+    //     )));
+    //     let proof2 = prover2
+    //         .prove(
+    //             &tree_and,
+    //             ctx.clone(),
+    //             message.as_slice(),
+    //             &bag_b,
+    //         )
+    //         .unwrap();
+    //     let proof_byte: ProofBytes = proof2.proof;
+    //     let verifier = TestVerifier;
+    //
+    //     assert!(
+    //         verifier
+    //             .verify(
+    //                 &tree_and,
+    //                 ctx,
+    //                 proof_byte,
+    //                 message.as_slice(),
+    //             )
+    //             .unwrap()
+    //             .result,
+    //         "{}",
+    //         "{}"
+    //     );
+    // }
+    //
+    // #[test]
+    // fn multi_sig_and_3() {
+    //     let ctx = Rc::new(force_any_val::<Context>());
+    //
+    //     let secret1 = DlogProverInput::random();
+    //     let secret2 = DlogProverInput::random();
+    //     let secret3 = DlogProverInput::random();
+    //     let pk1 = secret1.public_image();
+    //     let pk2 = secret2.public_image();
+    //     let pk3 = secret3.public_image();
+    //     let prover1 = TestProver {
+    //         secrets: vec![PrivateInput::DlogProverInput(secret1)],
+    //     };
+    //     let prover2 = TestProver {
+    //         secrets: vec![PrivateInput::DlogProverInput(secret2)],
+    //     };
+    //     let prover3 = TestProver {
+    //         secrets: vec![PrivateInput::DlogProverInput(secret3)],
+    //     };
+    //
+    //     let expr: Expr = SigmaAnd::new(vec![
+    //         Expr::Const(pk1.clone().into()),
+    //         Expr::Const(pk2.clone().into()),
+    //         Expr::Const(pk3.clone().into()),
+    //     ])
+    //     .unwrap()
+    //     .into();
+    //
+    //     let tree_expr = ErgoTree::try_from(expr.clone()).unwrap();
+    //
+    //     let expr_reduced = reduce_to_crypto(&expr, ctx.clone())
+    //         .unwrap()
+    //         .sigma_prop;
+    //     let mut generate_for: Vec<SigmaBoolean> = vec![SigmaBoolean::ProofOfKnowledge(
+    //         SigmaProofOfKnowledgeTree::ProveDlog(pk2),
+    //     )];
+    //     let hints_from_bob: HintsBag = generate_commitments_for(&expr_reduced, &generate_for);
+    //     let bag2 = hints_from_bob.real_commitments();
+    //     let bob_secret_commitment = hints_from_bob.own_commitments();
+    //     generate_for = vec![SigmaBoolean::ProofOfKnowledge(
+    //         SigmaProofOfKnowledgeTree::ProveDlog(pk3.clone()),
+    //     )];
+    //     let hints_from_carol: HintsBag = generate_commitments_for(&expr_reduced, &generate_for);
+    //     let bag3 = hints_from_carol.real_commitments();
+    //     let carol_secret_commitment = hints_from_carol.own_commitments();
+    //     let message = vec![0u8; 100];
+    //     let mut bag_a = HintsBag { hints: vec![] };
+    //     bag_a.add_hint(Hint::CommitmentHint(CommitmentHint::RealCommitment(
+    //         bag2.first().unwrap().clone(),
+    //     )));
+    //     bag_a.add_hint(Hint::CommitmentHint(CommitmentHint::RealCommitment(
+    //         bag3.first().unwrap().clone(),
+    //     )));
+    //     let proof1 = prover1
+    //         .prove(
+    //             &tree_expr,
+    //             ctx.clone(),
+    //             message.as_slice(),
+    //             &bag_a,
+    //         )
+    //         .unwrap();
+    //     let mut proof: Vec<u8> = Vec::from(proof1.proof.clone());
+    //     let proof_byte1: ProofBytes = proof1.proof;
+    //     let mut real_proposition: Vec<SigmaBoolean> = vec![SigmaBoolean::ProofOfKnowledge(
+    //         SigmaProofOfKnowledgeTree::ProveDlog(pk1.clone()),
+    //     )];
+    //     let simulated_proposition: Vec<SigmaBoolean> = Vec::new();
+    //     let mut bag_c = bag_for_multi_sig(
+    //         &expr_reduced,
+    //         &real_proposition,
+    //         &simulated_proposition,
+    //         &proof,
+    //     )
+    //     .unwrap();
+    //     bag_c.add_hint(Hint::CommitmentHint(CommitmentHint::OwnCommitment(
+    //         carol_secret_commitment.first().unwrap().clone(),
+    //     )));
+    //     bag_c.add_hint(Hint::CommitmentHint(CommitmentHint::RealCommitment(
+    //         bag2.first().unwrap().clone(),
+    //     )));
+    //     let proof3 = prover3
+    //         .prove(
+    //             &tree_expr,
+    //             ctx.clone(),
+    //             message.as_slice(),
+    //             &bag_c,
+    //         )
+    //         .unwrap();
+    //     proof = Vec::from(proof3.proof.clone());
+    //     let proof_byte3: ProofBytes = proof3.proof;
+    //     real_proposition = vec![
+    //         SigmaBoolean::ProofOfKnowledge(SigmaProofOfKnowledgeTree::ProveDlog(pk1)),
+    //         SigmaBoolean::ProofOfKnowledge(SigmaProofOfKnowledgeTree::ProveDlog(pk3)),
+    //     ];
+    //     let mut bag_b = bag_for_multi_sig(
+    //         &expr_reduced,
+    //         &real_proposition,
+    //         &simulated_proposition,
+    //         &proof,
+    //     )
+    //     .unwrap();
+    //     bag_b.add_hint(Hint::CommitmentHint(CommitmentHint::OwnCommitment(
+    //         bob_secret_commitment.first().unwrap().clone(),
+    //     )));
+    //     let proof2 = prover2
+    //         .prove(
+    //             &tree_expr,
+    //             ctx.clone(),
+    //             message.as_slice(),
+    //             &bag_b,
+    //         )
+    //         .unwrap();
+    //     let proof_byte2: ProofBytes = proof2.proof;
+    //     let verifier = TestVerifier;
+    //
+    //     assert!(
+    //         !verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 ctx.clone(),
+    //                 proof_byte1,
+    //                 message.as_slice(),
+    //             )
+    //             .unwrap()
+    //             .result,
+    //         "{}",
+    //         "{}"
+    //     );
+    //
+    //     assert!(
+    //         !verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 ctx.clone(),
+    //                 proof_byte3,
+    //                 message.as_slice(),
+    //             )
+    //             .unwrap()
+    //             .result,
+    //         "{}",
+    //         "{}"
+    //     );
+    //
+    //     assert!(
+    //         verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 ctx,
+    //                 proof_byte2,
+    //                 message.as_slice(),
+    //             )
+    //             .unwrap()
+    //             .result,
+    //         "{}",
+    //         "{}"
+    //     );
+    // }
+    //
+    // #[test]
+    // fn multi_dlog_dht() {
+    //     let ctx = Rc::new(force_any_val::<Context>());
+    //
+    //     let secret_alice = DlogProverInput::random();
+    //     let secret_bob = DlogProverInput::random();
+    //     let secret_carol = DhTupleProverInput::random();
+    //     let secret_dave = DhTupleProverInput::random();
+    //
+    //     let pk_alice = secret_alice.public_image();
+    //     let pk_bob = secret_bob.public_image();
+    //     let pk_carol = secret_carol.public_image();
+    //     let pk_dave = secret_dave.public_image();
+    //     let prover_a = TestProver {
+    //         secrets: vec![PrivateInput::DlogProverInput(secret_alice)],
+    //     };
+    //     let _prover_b = TestProver {
+    //         secrets: vec![PrivateInput::DlogProverInput(secret_bob)],
+    //     };
+    //     let _prover_c = TestProver {
+    //         secrets: vec![PrivateInput::DhTupleProverInput(secret_carol.clone())],
+    //     };
+    //     let _prover_d = TestProver {
+    //         secrets: vec![PrivateInput::DhTupleProverInput(secret_dave.clone())],
+    //     };
+    //     let first_expr: Expr = SigmaOr::new(vec![
+    //         Expr::Const(pk_alice.clone().into()),
+    //         Expr::Const(pk_bob.clone().into()),
+    //     ])
+    //     .unwrap()
+    //     .into();
+    //     let second_expr: Expr = SigmaOr::new(vec![
+    //         Expr::Const(pk_carol.clone().into()),
+    //         Expr::Const(pk_dave.clone().into()),
+    //     ])
+    //     .unwrap()
+    //     .into();
+    //     let exp: Expr = SigmaAnd::new(vec![first_expr, second_expr]).unwrap().into();
+    //     let tree = ErgoTree::try_from(exp.clone()).unwrap();
+    //     let ctree = reduce_to_crypto(&exp, ctx.clone())
+    //         .unwrap()
+    //         .sigma_prop;
+    //     let mut generate_for: Vec<SigmaBoolean> = vec![SigmaBoolean::ProofOfKnowledge(
+    //         SigmaProofOfKnowledgeTree::ProveDlog(pk_alice.clone()),
+    //     )];
+    //     let alice_hints: HintsBag = generate_commitments_for(&ctree, &generate_for);
+    //     let secret_commitment_alice = alice_hints.own_commitments();
+    //     generate_for = vec![SigmaBoolean::ProofOfKnowledge(
+    //         SigmaProofOfKnowledgeTree::ProveDhTuple(pk_dave.clone()),
+    //     )];
+    //     let dave_hints: HintsBag = generate_commitments_for(&ctree, &generate_for);
+    //     let dave_known = dave_hints.real_commitments();
+    //     let _dave_secret_commitment = dave_hints.own_commitments();
+    //     let message = vec![0u8; 100];
+    //     let mut bag_a = HintsBag::empty();
+    //     bag_a.add_hint(Hint::CommitmentHint(CommitmentHint::OwnCommitment(
+    //         secret_commitment_alice.first().unwrap().clone(),
+    //     )));
+    //     bag_a.add_hint(Hint::CommitmentHint(CommitmentHint::RealCommitment(
+    //         dave_known.first().unwrap().clone(),
+    //     )));
+    //     let proof_a = prover_a
+    //         .prove(
+    //             &tree,
+    //             ctx.clone(),
+    //             message.as_slice(),
+    //             &bag_a,
+    //         )
+    //         .unwrap();
+    //     let proof: Vec<u8> = Vec::from(proof_a.proof.clone());
+    //     let proof_byte_a: ProofBytes = proof_a.proof;
+    //     let verifier = TestVerifier;
+    //
+    //     assert!(
+    //         !verifier
+    //             .verify(
+    //                 &tree,
+    //                 ctx.clone(),
+    //                 proof_byte_a,
+    //                 message.as_slice(),
+    //             )
+    //             .unwrap()
+    //             .result,
+    //         "{}",
+    //         "{}"
+    //     );
+    //     let real_proposition: Vec<SigmaBoolean> = vec![SigmaBoolean::ProofOfKnowledge(
+    //         SigmaProofOfKnowledgeTree::ProveDlog(pk_alice),
+    //     )];
+    //     let simulated_proposition: Vec<SigmaBoolean> = vec![
+    //         SigmaBoolean::ProofOfKnowledge(SigmaProofOfKnowledgeTree::ProveDlog(pk_bob.clone())),
+    //         SigmaBoolean::ProofOfKnowledge(SigmaProofOfKnowledgeTree::ProveDhTuple(
+    //             pk_carol.clone(),
+    //         )),
+    //     ];
+    //     println!(
+    //         "{:?}",
+    //         SigmaBoolean::ProofOfKnowledge(SigmaProofOfKnowledgeTree::ProveDlog(pk_bob))
+    //     );
+    //     let mut bag =
+    //         bag_for_multi_sig(&ctree, &real_proposition, &simulated_proposition, &proof).unwrap();
+    //     bag.add_hint(Hint::CommitmentHint(CommitmentHint::OwnCommitment(
+    //         _dave_secret_commitment.first().unwrap().clone(),
+    //     )));
+    //
+    //     let proof_d = _prover_d
+    //         .prove(&tree, ctx.clone(), message.as_slice(), &bag)
+    //         .unwrap();
+    //     let proof_byte_d: ProofBytes = proof_d.proof;
+    //
+    //     assert!(
+    //         verifier
+    //             .verify(&tree, ctx, proof_byte_d, message.as_slice(),)
+    //             .unwrap()
+    //             .result,
+    //         "{}",
+    //         "{}"
+    //     );
+    // }
+    //
+    // #[test]
+    // fn multi_sig_atleast_2_out_of_3() {
+    //     // from https://github.com/ScorexFoundation/sigmastate-interpreter/blob/78dd1e715038c2f95c518fb56977c6591b76e20c/sc/src/test/scala/sigmastate/utxo/DistributedSigSpecification.scala#L124
+    //     let ctx = Rc::new(force_any_val::<Context>());
+    //
+    //     let alice_secret = DlogProverInput::random();
+    //     let bob_secret = DlogProverInput::random();
+    //     let carol_secret = DlogProverInput::random();
+    //     let alice_pk = alice_secret.public_image();
+    //     let bob_pk = bob_secret.public_image();
+    //     let carol_pk = carol_secret.public_image();
+    //     let alice_prover = TestProver {
+    //         secrets: vec![PrivateInput::DlogProverInput(alice_secret)],
+    //     };
+    //     let bob_prover = TestProver {
+    //         secrets: vec![PrivateInput::DlogProverInput(bob_secret)],
+    //     };
+    //     let _carol_prover = TestProver {
+    //         secrets: vec![PrivateInput::DlogProverInput(carol_secret)],
+    //     };
+    //
+    //     let bound = Expr::Const(2i32.into());
+    //     let inputs = Literal::Coll(
+    //         CollKind::from_vec(
+    //             SType::SSigmaProp,
+    //             vec![
+    //                 SigmaProp::from(alice_pk.clone()).into(),
+    //                 SigmaProp::from(bob_pk.clone()).into(),
+    //                 SigmaProp::from(carol_pk.clone()).into(),
+    //             ],
+    //         )
+    //         .unwrap(),
+    //     );
+    //     let input = Constant {
+    //         tpe: SType::SColl(SType::SSigmaProp.into()),
+    //         v: inputs,
+    //     }
+    //     .into();
+    //     let expr: Expr = Atleast::new(bound, input).unwrap().into();
+    //
+    //     let tree_expr = ErgoTree::try_from(expr.clone()).unwrap();
+    //
+    //     let expr_reduced = reduce_to_crypto(&expr, ctx.clone())
+    //         .unwrap()
+    //         .sigma_prop;
+    //     let message = vec![0u8; 100];
+    //
+    //     let hints_from_bob: HintsBag = generate_commitments_for(&expr_reduced, &[bob_pk.into()]);
+    //
+    //     let bob_real_commitment = hints_from_bob.real_commitments();
+    //
+    //     let mut bag_a = HintsBag { hints: vec![] };
+    //     bag_a.add_hint(Hint::CommitmentHint(CommitmentHint::RealCommitment(
+    //         bob_real_commitment.first().unwrap().clone(),
+    //     )));
+    //
+    //     let proof_alice = alice_prover
+    //         .prove(
+    //             &tree_expr,
+    //             ctx.clone(),
+    //             message.as_slice(),
+    //             &bag_a,
+    //         )
+    //         .unwrap();
+    //
+    //     let mut bag_b = bag_for_multi_sig(
+    //         &expr_reduced,
+    //         &[alice_pk.into()],
+    //         &[carol_pk.into()],
+    //         proof_alice.proof.as_ref(),
+    //     )
+    //     .unwrap();
+    //     bag_b.add_hint(Hint::CommitmentHint(CommitmentHint::OwnCommitment(
+    //         hints_from_bob.own_commitments().first().unwrap().clone(),
+    //     )));
+    //
+    //     let proof_bob = bob_prover
+    //         .prove(
+    //             &tree_expr,
+    //             ctx.clone(),
+    //             message.as_slice(),
+    //             &bag_b,
+    //         )
+    //         .unwrap();
+    //
+    //     let verifier = TestVerifier;
+    //
+    //     assert!(
+    //         !verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 ctx.clone(),
+    //                 proof_alice.proof,
+    //                 message.as_slice(),
+    //             )
+    //             .unwrap()
+    //             .result,
+    //         "Proof generated by Alice without getting Bob's part is not correct"
+    //     );
+    //
+    //     assert!(
+    //         verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 ctx,
+    //                 proof_bob.proof,
+    //                 message.as_slice(),
+    //             )
+    //             .unwrap()
+    //             .result,
+    //         "Compound proof from Bob is correct"
+    //     );
+    // }
+    //
+    // #[test]
+    // fn multi_sig_atleast_3_out_of_4() {
+    //     // from https://github.com/ScorexFoundation/sigmastate-interpreter/blob/78dd1e715038c2f95c518fb56977c6591b76e20c/sc/src/test/scala/sigmastate/utxo/DistributedSigSpecification.scala#L160-L205
+    //
+    //     let ctx = Rc::new(force_any_val::<Context>());
+    //
+    //     let alice_secret = DlogProverInput::random();
+    //     let bob_secret = DlogProverInput::random();
+    //     let carol_secret = DlogProverInput::random();
+    //     let dave_secret = DlogProverInput::random();
+    //     let alice_pk = alice_secret.public_image();
+    //     let bob_pk = bob_secret.public_image();
+    //     let carol_pk = carol_secret.public_image();
+    //     let dave_pk = dave_secret.public_image();
+    //     let alice_prover = TestProver {
+    //         secrets: vec![PrivateInput::DlogProverInput(alice_secret)],
+    //     };
+    //     let bob_prover = TestProver {
+    //         secrets: vec![PrivateInput::DlogProverInput(bob_secret)],
+    //     };
+    //     let _carol_prover = TestProver {
+    //         secrets: vec![PrivateInput::DlogProverInput(carol_secret)],
+    //     };
+    //
+    //     let bound = Expr::Const(3i32.into());
+    //     let inputs = Literal::Coll(
+    //         CollKind::from_vec(
+    //             SType::SSigmaProp,
+    //             vec![
+    //                 SigmaProp::from(alice_pk.clone()).into(),
+    //                 SigmaProp::from(bob_pk.clone()).into(),
+    //                 SigmaProp::from(carol_pk.clone()).into(),
+    //                 SigmaProp::from(dave_pk.clone()).into(),
+    //             ],
+    //         )
+    //         .unwrap(),
+    //     );
+    //     let input = Constant {
+    //         tpe: SType::SColl(SType::SSigmaProp.into()),
+    //         v: inputs,
+    //     }
+    //     .into();
+    //     let expr: Expr = Atleast::new(bound, input).unwrap().into();
+    //
+    //     let tree_expr = ErgoTree::try_from(expr.clone()).unwrap();
+    //
+    //     let expr_reduced = reduce_to_crypto(&expr, &Env::empty(), ctx.clone())
+    //         .unwrap()
+    //         .sigma_prop;
+    //     let message = vec![0u8; 100];
+    //
+    //     let bob_hints: HintsBag = generate_commitments_for(&expr_reduced, &[bob_pk.into()]);
+    //     let dl_b_known = bob_hints.real_commitments().first().unwrap().clone();
+    //
+    //     let carol_hints: HintsBag =
+    //         generate_commitments_for(&expr_reduced, &[carol_pk.clone().into()]);
+    //     let dl_c_known = carol_hints.real_commitments().first().unwrap().clone();
+    //
+    //     let bag_a = HintsBag {
+    //         hints: vec![dl_b_known.clone().into(), dl_c_known.into()],
+    //     };
+    //
+    //     let proof_alice = alice_prover
+    //         .prove(
+    //             &tree_expr,
+    //             &Env::empty(),
+    //             ctx.clone(),
+    //             message.as_slice(),
+    //             &bag_a,
+    //         )
+    //         .unwrap();
+    //
+    //     let mut bag_c = bag_for_multi_sig(
+    //         &expr_reduced,
+    //         &[alice_pk.clone().into()],
+    //         &[dave_pk.clone().into()],
+    //         proof_alice.proof.as_ref(),
+    //     )
+    //     .unwrap();
+    //     bag_c.hints.push(dl_b_known.into());
+    //     bag_c.hints.push(
+    //         carol_hints
+    //             .own_commitments()
+    //             .first()
+    //             .unwrap()
+    //             .clone()
+    //             .into(),
+    //     );
+    //
+    //     let proof_carol = _carol_prover
+    //         .prove(
+    //             &tree_expr,
+    //             &Env::empty(),
+    //             ctx.clone(),
+    //             message.as_slice(),
+    //             &bag_c,
+    //         )
+    //         .unwrap();
+    //
+    //     let bag_b_1 = bag_for_multi_sig(
+    //         &expr_reduced,
+    //         &[alice_pk.into()],
+    //         &[dave_pk.into()],
+    //         proof_alice.proof.as_ref(),
+    //     )
+    //     .unwrap();
+    //
+    //     let bag_b_2 = bag_for_multi_sig(
+    //         &expr_reduced,
+    //         &[carol_pk.into()],
+    //         &[],
+    //         proof_carol.proof.as_ref(),
+    //     )
+    //     .unwrap();
+    //
+    //     let mut bag_b = HintsBag::from_bags(vec![bag_b_1, bag_b_2]);
+    //
+    //     bag_b.add_hint(bob_hints.own_commitments().first().unwrap().clone().into());
+    //
+    //     let proof_bob = bob_prover
+    //         .prove(
+    //             &tree_expr,
+    //             &Env::empty(),
+    //             ctx.clone(),
+    //             message.as_slice(),
+    //             &bag_b,
+    //         )
+    //         .unwrap();
+    //
+    //     let verifier = TestVerifier;
+    //
+    //     assert!(
+    //         !verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 &Env::empty(),
+    //                 ctx.clone(),
+    //                 proof_alice.proof,
+    //                 message.as_slice(),
+    //             )
+    //             .unwrap()
+    //             .result,
+    //         "Proof generated by Alice without getting Bob's part is not correct"
+    //     );
+    //
+    //     assert!(
+    //         !verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 &Env::empty(),
+    //                 ctx.clone(),
+    //                 proof_carol.proof,
+    //                 message.as_slice(),
+    //             )
+    //             .unwrap()
+    //             .result,
+    //         "Proof generated by Carol without getting Bob's part is not correct"
+    //     );
+    //
+    //     assert!(
+    //         verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 &Env::empty(),
+    //                 ctx,
+    //                 proof_bob.proof,
+    //                 message.as_slice(),
+    //             )
+    //             .unwrap()
+    //             .result,
+    //         "Compound proof from Bob is correct"
+    //     );
+    // }
+    //
+    // #[test]
+    // fn multi_sig_atleast_7_out_of_10_i692() {
+    //     // based on
+    //     // https://github.com/ScorexFoundation/sigmastate-interpreter/blob/78dd1e715038c2f95c518fb56977c6591b76e20c/sc/src/test/scala/sigmastate/utxo/DistributedSigSpecification.scala#L299-L389
+    //     let ctx = Rc::new(force_any_val::<Context>());
+    //
+    //     let sk1 = DlogProverInput::random();
+    //     let pk1 = sk1.public_image();
+    //     let sk2 = DlogProverInput::random();
+    //     let pk2 = sk2.public_image();
+    //     let sk3 = DlogProverInput::random();
+    //     let pk3 = sk3.public_image();
+    //     let sk4 = DlogProverInput::random();
+    //     let pk4 = sk4.public_image();
+    //     let sk5 = DlogProverInput::random();
+    //     let pk5 = sk5.public_image();
+    //     let sk6 = DlogProverInput::random();
+    //     let pk6 = sk6.public_image();
+    //     let sk7 = DlogProverInput::random();
+    //     let pk7 = sk7.public_image();
+    //     let sk8 = DlogProverInput::random();
+    //     let pk8 = sk8.public_image();
+    //     let sk9 = DlogProverInput::random();
+    //     let pk9 = sk9.public_image();
+    //     let sk10 = DlogProverInput::random();
+    //     let pk10 = sk10.public_image();
+    //
+    //     let prover1 = TestProver {
+    //         secrets: vec![sk1.into()],
+    //     };
+    //     let prover2 = TestProver {
+    //         secrets: vec![sk2.into()],
+    //     };
+    //     let prover3 = TestProver {
+    //         secrets: vec![sk3.into()],
+    //     };
+    //     let prover4 = TestProver {
+    //         secrets: vec![sk4.into()],
+    //     };
+    //     let prover5 = TestProver {
+    //         secrets: vec![sk5.into()],
+    //     };
+    //     let prover6 = TestProver {
+    //         secrets: vec![sk6.into()],
+    //     };
+    //     let prover7 = TestProver {
+    //         secrets: vec![sk7.into()],
+    //     };
+    //     // let prover8 = TestProver {
+    //     //     secrets: vec![sk8.into()],
+    //     // };
+    //     // let prover9 = TestProver {
+    //     //     secrets: vec![sk9.into()],
+    //     // };
+    //     // let prover10 = TestProver {
+    //     //     secrets: vec![sk10.into()],
+    //     // };
+    //
+    //     let bound = Expr::Const(7i32.into());
+    //     let input = Constant {
+    //         tpe: SType::SColl(SType::SSigmaProp.into()),
+    //         v: Literal::Coll(
+    //             CollKind::from_vec(
+    //                 SType::SSigmaProp,
+    //                 vec![
+    //                     SigmaProp::from(pk1.clone()).into(),
+    //                     SigmaProp::from(pk2.clone()).into(),
+    //                     SigmaProp::from(pk3.clone()).into(),
+    //                     SigmaProp::from(pk4.clone()).into(),
+    //                     SigmaProp::from(pk5.clone()).into(),
+    //                     SigmaProp::from(pk6.clone()).into(),
+    //                     SigmaProp::from(pk7.clone()).into(),
+    //                     SigmaProp::from(pk8.clone()).into(),
+    //                     SigmaProp::from(pk9.clone()).into(),
+    //                     SigmaProp::from(pk10.clone()).into(),
+    //                 ],
+    //             )
+    //             .unwrap(),
+    //         ),
+    //     }
+    //     .into();
+    //     let expr: Expr = Atleast::new(bound, input).unwrap().into();
+    //     let tree_expr = ErgoTree::try_from(expr.clone()).unwrap();
+    //     let expr_reduced = reduce_to_crypto(&expr, &Env::empty(), ctx.clone())
+    //         .unwrap()
+    //         .sigma_prop;
+    //     let message = vec![0u8; 100];
+    //
+    //     // only actors 1, 2, 3, 4, 5, 6, 7 are signing, others are simulated (see bag_one below)
+    //
+    //     let hints_1 = generate_commitments_for(&expr_reduced, &[pk1.clone().into()]);
+    //     let dl_1_known = hints_1.real_commitments().first().unwrap().clone();
+    //     let secret_cmt_1 = hints_1.own_commitments().first().unwrap().clone();
+    //
+    //     let hints_2 = generate_commitments_for(&expr_reduced, &[pk2.clone().into()]);
+    //     let dl_2_known = hints_2.real_commitments().first().unwrap().clone();
+    //     let secret_cmt_2 = hints_2.own_commitments().first().unwrap().clone();
+    //
+    //     let hints_3 = generate_commitments_for(&expr_reduced, &[pk3.clone().into()]);
+    //     let dl_3_known = hints_3.real_commitments().first().unwrap().clone();
+    //     let secret_cmt_3 = hints_3.own_commitments().first().unwrap().clone();
+    //
+    //     let hints_4 = generate_commitments_for(&expr_reduced, &[pk4.clone().into()]);
+    //     let dl_4_known = hints_4.real_commitments().first().unwrap().clone();
+    //     let secret_cmt_4 = hints_4.own_commitments().first().unwrap().clone();
+    //
+    //     let hints_5 = generate_commitments_for(&expr_reduced, &[pk5.clone().into()]);
+    //     let dl_5_known = hints_5.real_commitments().first().unwrap().clone();
+    //     let secret_cmt_5 = hints_5.own_commitments().first().unwrap().clone();
+    //
+    //     let hints_6 = generate_commitments_for(&expr_reduced, &[pk6.clone().into()]);
+    //     let dl_6_known = hints_6.real_commitments().first().unwrap().clone();
+    //     let secret_cmt_6 = hints_6.own_commitments().first().unwrap().clone();
+    //
+    //     let hints_7 = generate_commitments_for(&expr_reduced, &[pk7.clone().into()]);
+    //     let secret_cmt_7 = hints_7.own_commitments().first().unwrap().clone();
+    //
+    //     let bag_7 = HintsBag {
+    //         hints: vec![
+    //             dl_1_known.clone().into(),
+    //             dl_2_known.clone().into(),
+    //             dl_3_known.clone().into(),
+    //             dl_4_known.clone().into(),
+    //             dl_5_known.clone().into(),
+    //             dl_6_known.clone().into(),
+    //             secret_cmt_7.clone().into(),
+    //         ],
+    //     };
+    //
+    //     let proof_7 = prover7
+    //         .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_7)
+    //         .unwrap();
+    //
+    //     let verifier = TestVerifier;
+    //
+    //     assert!(
+    //         !verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 &Env::empty(),
+    //                 ctx.clone(),
+    //                 proof_7.proof.clone(),
+    //                 message.as_slice(),
+    //             )
+    //             .unwrap()
+    //             .result,
+    //         "Proof generated by Prover7 only is not correct"
+    //     );
+    //
+    //     //hints after the first real proof done.
+    //     let bag_one = bag_for_multi_sig(
+    //         &expr_reduced,
+    //         &[pk7.into()],
+    //         &[pk8.into(), pk9.into(), pk10.into()],
+    //         proof_7.proof.as_ref(),
+    //     )
+    //     .unwrap();
+    //
+    //     //now real proofs can be done in any order
+    //     let mut bag_2 = bag_one.clone();
+    //     bag_2.add_hint(secret_cmt_2.clone().into());
+    //     bag_2.add_hint(dl_1_known.clone().into());
+    //     bag_2.add_hint(dl_3_known.clone().into());
+    //     bag_2.add_hint(dl_4_known.clone().into());
+    //     bag_2.add_hint(dl_5_known.clone().into());
+    //     bag_2.add_hint(dl_6_known.clone().into());
+    //     let proof_2 = prover2
+    //         .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_2)
+    //         .unwrap();
+    //     let partial_proof_2 =
+    //         bag_for_multi_sig(&expr_reduced, &[pk2.into()], &[], proof_2.proof.as_ref())
+    //             .unwrap()
+    //             .real_proofs()
+    //             .first()
+    //             .unwrap()
+    //             .clone();
+    //
+    //     let mut bag_1 = bag_one.clone();
+    //     bag_1.add_hint(secret_cmt_1.clone().into());
+    //     bag_1.add_hint(dl_2_known.clone().into());
+    //     bag_1.add_hint(dl_3_known.clone().into());
+    //     bag_1.add_hint(dl_4_known.clone().into());
+    //     bag_1.add_hint(dl_5_known.clone().into());
+    //     bag_1.add_hint(dl_6_known.clone().into());
+    //
+    //     let proof_1 = prover1
+    //         .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_1)
+    //         .unwrap();
+    //     let partial_proof_1 =
+    //         bag_for_multi_sig(&expr_reduced, &[pk1.into()], &[], proof_1.proof.as_ref())
+    //             .unwrap()
+    //             .real_proofs()
+    //             .first()
+    //             .unwrap()
+    //             .clone();
+    //
+    //     let mut bag_3 = bag_one.clone();
+    //     bag_3.add_hint(secret_cmt_3.clone().into());
+    //     bag_3.add_hint(dl_1_known.clone().into());
+    //     bag_3.add_hint(dl_2_known.clone().into());
+    //     bag_3.add_hint(dl_4_known.clone().into());
+    //     bag_3.add_hint(dl_5_known.clone().into());
+    //     bag_3.add_hint(dl_6_known.clone().into());
+    //     let proof_3 = prover3
+    //         .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_3)
+    //         .unwrap();
+    //     let partial_proof_3 =
+    //         bag_for_multi_sig(&expr_reduced, &[pk3.into()], &[], proof_3.proof.as_ref())
+    //             .unwrap()
+    //             .real_proofs()
+    //             .first()
+    //             .unwrap()
+    //             .clone();
+    //
+    //     let mut bag_4 = bag_one.clone();
+    //     bag_4.add_hint(secret_cmt_4.clone().into());
+    //     bag_4.add_hint(dl_1_known.clone().into());
+    //     bag_4.add_hint(dl_2_known.clone().into());
+    //     bag_4.add_hint(dl_3_known.clone().into());
+    //     bag_4.add_hint(dl_5_known.clone().into());
+    //     bag_4.add_hint(dl_6_known.clone().into());
+    //     let proof_4 = prover4
+    //         .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_4)
+    //         .unwrap();
+    //     let partial_proof_4 =
+    //         bag_for_multi_sig(&expr_reduced, &[pk4.into()], &[], proof_4.proof.as_ref())
+    //             .unwrap()
+    //             .real_proofs()
+    //             .first()
+    //             .unwrap()
+    //             .clone();
+    //
+    //     let mut bag_5 = bag_one.clone();
+    //     bag_5.add_hint(secret_cmt_5.clone().into());
+    //     bag_5.add_hint(dl_1_known.clone().into());
+    //     bag_5.add_hint(dl_2_known.clone().into());
+    //     bag_5.add_hint(dl_3_known.clone().into());
+    //     bag_5.add_hint(dl_4_known.clone().into());
+    //     bag_5.add_hint(dl_6_known.clone().into());
+    //     let proof_5 = prover5
+    //         .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_5)
+    //         .unwrap();
+    //     let partial_proof_5 =
+    //         bag_for_multi_sig(&expr_reduced, &[pk5.into()], &[], proof_5.proof.as_ref())
+    //             .unwrap()
+    //             .real_proofs()
+    //             .first()
+    //             .unwrap()
+    //             .clone();
+    //
+    //     let mut bag_6 = bag_one.clone();
+    //     bag_6.add_hint(secret_cmt_6.clone().into());
+    //     bag_6.add_hint(dl_1_known.clone().into());
+    //     bag_6.add_hint(dl_2_known.clone().into());
+    //     bag_6.add_hint(dl_3_known.clone().into());
+    //     bag_6.add_hint(dl_4_known.clone().into());
+    //     bag_6.add_hint(dl_5_known.clone().into());
+    //     let proof_6 = prover6
+    //         .prove(&tree_expr, &Env::empty(), ctx.clone(), &message, &bag_6)
+    //         .unwrap();
+    //     let partial_proof_6 =
+    //         bag_for_multi_sig(&expr_reduced, &[pk6.into()], &[], proof_6.proof.as_ref())
+    //             .unwrap()
+    //             .real_proofs()
+    //             .first()
+    //             .unwrap()
+    //             .clone();
+    //
+    //     let mut bag = bag_one;
+    //     bag.add_hint(partial_proof_1.into());
+    //     bag.add_hint(partial_proof_2.into());
+    //     bag.add_hint(partial_proof_3.into());
+    //     bag.add_hint(partial_proof_4.into());
+    //     bag.add_hint(partial_proof_5.into());
+    //     bag.add_hint(partial_proof_6.into());
+    //     bag.add_hint(dl_1_known.into());
+    //     bag.add_hint(dl_2_known.into());
+    //     bag.add_hint(dl_3_known.into());
+    //     bag.add_hint(dl_4_known.into());
+    //     bag.add_hint(dl_5_known.into());
+    //     bag.add_hint(dl_6_known.into());
+    //
+    //     let mut valid_bag_1 = bag.clone();
+    //     valid_bag_1.add_hint(secret_cmt_1.into());
+    //     let valid_proof_1 = prover1
+    //         .prove(
+    //             &tree_expr,
+    //             &Env::empty(),
+    //             ctx.clone(),
+    //             &message,
+    //             &valid_bag_1,
+    //         )
+    //         .unwrap();
+    //
+    //     assert!(
+    //         verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 &Env::empty(),
+    //                 ctx.clone(),
+    //                 valid_proof_1.proof.clone(),
+    //                 message.as_slice(),
+    //             )
+    //             .unwrap()
+    //             .result,
+    //     );
+    //
+    //     let mut valid_bag_2 = bag.clone();
+    //     valid_bag_2.add_hint(secret_cmt_2.into());
+    //     let valid_proof_2 = prover2
+    //         .prove(
+    //             &tree_expr,
+    //             &Env::empty(),
+    //             ctx.clone(),
+    //             &message,
+    //             &valid_bag_2,
+    //         )
+    //         .unwrap();
+    //     assert!(
+    //         verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 &Env::empty(),
+    //                 ctx.clone(),
+    //                 valid_proof_2.proof.clone(),
+    //                 message.as_slice(),
+    //             )
+    //             .unwrap()
+    //             .result,
+    //     );
+    //
+    //     let mut valid_bag_3 = bag.clone();
+    //     valid_bag_3.add_hint(secret_cmt_3.into());
+    //     let valid_proof_3 = prover3
+    //         .prove(
+    //             &tree_expr,
+    //             &Env::empty(),
+    //             ctx.clone(),
+    //             &message,
+    //             &valid_bag_3,
+    //         )
+    //         .unwrap();
+    //     assert!(
+    //         verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 &Env::empty(),
+    //                 ctx.clone(),
+    //                 valid_proof_3.proof.clone(),
+    //                 message.as_slice()
+    //             )
+    //             .unwrap()
+    //             .result
+    //     );
+    //
+    //     let mut valid_bag_4 = bag.clone();
+    //     valid_bag_4.add_hint(secret_cmt_4.into());
+    //     let valid_proof_4 = prover4
+    //         .prove(
+    //             &tree_expr,
+    //             &Env::empty(),
+    //             ctx.clone(),
+    //             &message,
+    //             &valid_bag_4,
+    //         )
+    //         .unwrap();
+    //     assert!(
+    //         verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 &Env::empty(),
+    //                 ctx.clone(),
+    //                 valid_proof_4.proof.clone(),
+    //                 message.as_slice()
+    //             )
+    //             .unwrap()
+    //             .result
+    //     );
+    //
+    //     let mut valid_bag_5 = bag.clone();
+    //     valid_bag_5.add_hint(secret_cmt_5.into());
+    //     let valid_proof_5 = prover5
+    //         .prove(
+    //             &tree_expr,
+    //             &Env::empty(),
+    //             ctx.clone(),
+    //             &message,
+    //             &valid_bag_5,
+    //         )
+    //         .unwrap();
+    //     assert!(
+    //         verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 &Env::empty(),
+    //                 ctx.clone(),
+    //                 valid_proof_5.proof.clone(),
+    //                 message.as_slice()
+    //             )
+    //             .unwrap()
+    //             .result
+    //     );
+    //
+    //     let mut valid_bag_6 = bag.clone();
+    //     valid_bag_6.add_hint(secret_cmt_6.into());
+    //     let valid_proof_6 = prover6
+    //         .prove(
+    //             &tree_expr,
+    //             &Env::empty(),
+    //             ctx.clone(),
+    //             &message,
+    //             &valid_bag_6,
+    //         )
+    //         .unwrap();
+    //     assert!(
+    //         verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 &Env::empty(),
+    //                 ctx.clone(),
+    //                 valid_proof_6.proof.clone(),
+    //                 message.as_slice()
+    //             )
+    //             .unwrap()
+    //             .result
+    //     );
+    //
+    //     let mut valid_bag_7 = bag.clone();
+    //     valid_bag_7.add_hint(secret_cmt_7.into());
+    //     let valid_proof_7 = prover7
+    //         .prove(
+    //             &tree_expr,
+    //             &Env::empty(),
+    //             ctx.clone(),
+    //             &message,
+    //             &valid_bag_7,
+    //         )
+    //         .unwrap();
+    //     assert!(
+    //         verifier
+    //             .verify(
+    //                 &tree_expr,
+    //                 &Env::empty(),
+    //                 ctx,
+    //                 valid_proof_7.proof.clone(),
+    //                 message.as_slice()
+    //             )
+    //             .unwrap()
+    //             .result
+    //     );
+    //
+    //     assert_eq!(valid_proof_1.proof, valid_proof_2.proof);
+    //     assert_eq!(valid_proof_2.proof, valid_proof_3.proof);
+    //     assert_eq!(valid_proof_3.proof, valid_proof_4.proof);
+    //     assert_eq!(valid_proof_4.proof, valid_proof_5.proof);
+    //     assert_eq!(valid_proof_5.proof, valid_proof_6.proof);
+    //     assert_eq!(valid_proof_6.proof, valid_proof_7.proof);
+    // }
 }

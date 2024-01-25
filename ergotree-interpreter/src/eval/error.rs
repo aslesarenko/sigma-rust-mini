@@ -15,7 +15,6 @@ use sigma_ser::ScorexSerializationError;
 use thiserror::Error;
 
 use super::cost_accum::CostError;
-use super::env::Env;
 
 /// Interpreter errors
 #[derive(Error, PartialEq, Eq, Debug, Clone, TryInto)]
@@ -83,8 +82,6 @@ pub struct SpannedEvalError {
     error: Box<EvalError>,
     /// source span for the expression where error occurred
     source_span: SourceSpan,
-    /// environment at the time when error occurred
-    env: Env,
 }
 
 /// Wrapped error with source span and source code
@@ -94,8 +91,6 @@ pub struct SpannedWithSourceEvalError {
     error: Box<EvalError>,
     /// source span for the expression where error occurred
     source_span: SourceSpan,
-    /// environment at the time when error occurred
-    env: Env,
     /// source code
     source: String,
 }
@@ -149,17 +144,16 @@ impl Debug for SpannedWithSourceEvalError {
         )
         .with_source_code(self.source.clone());
         write!(f, "{:?}", report)?;
-        write!(f, "Env:\n{}", self.env)
+        write!(f, "")
     }
 }
 
 impl EvalError {
     /// Wrap eval error with source span
-    pub fn wrap(self, source_span: SourceSpan, env: Env) -> Self {
+    pub fn wrap(self, source_span: SourceSpan) -> Self {
         EvalError::Spanned(SpannedEvalError {
             error: Box::new(self),
             source_span,
-            env,
         })
     }
 
@@ -170,7 +164,6 @@ impl EvalError {
             EvalError::Spanned(e) => EvalError::SpannedWithSource(SpannedWithSourceEvalError {
                 error: e.error,
                 source_span: e.source_span,
-                env: e.env,
                 source,
             }),
             e => panic!("Expected Spanned, got {:?}", e),
@@ -179,15 +172,15 @@ impl EvalError {
 }
 
 pub trait ExtResultEvalError<T> {
-    fn enrich_err(self, span: SourceSpan, env: Env) -> Result<T, EvalError>;
+    fn enrich_err(self, span: SourceSpan) -> Result<T, EvalError>;
 }
 
 impl<T> ExtResultEvalError<T> for Result<T, EvalError> {
-    fn enrich_err(self, span: SourceSpan, env: Env) -> Result<T, EvalError> {
+    fn enrich_err(self, span: SourceSpan) -> Result<T, EvalError> {
         self.map_err(|e| match e {
             // skip already wrapped errors
             w @ EvalError::Spanned { .. } => w,
-            e => e.wrap(span, env),
+            e => e.wrap(span),
         })
     }
 }
@@ -197,17 +190,10 @@ impl<T> ExtResultEvalError<T> for Result<T, EvalError> {
 mod tests {
     use std::rc::Rc;
 
-    use ergotree_ir::mir::coll_by_index::ByIndex;
-    use ergotree_ir::mir::global_vars::GlobalVars;
     use ergotree_ir::source_span::SourceSpan;
     use expect_test::expect;
 
-    use ergotree_ir::mir::bin_op::ArithOp;
-    use ergotree_ir::mir::bin_op::BinOp;
-    use ergotree_ir::mir::block::BlockValue;
     use ergotree_ir::mir::expr::Expr;
-    use ergotree_ir::mir::val_def::ValDef;
-    use ergotree_ir::mir::val_use::ValUse;
     use ergotree_ir::pretty_printer::PosTrackingWriter;
     use ergotree_ir::pretty_printer::Print;
     use ergotree_ir::types::stype::SType;
@@ -231,7 +217,6 @@ mod tests {
         let err = SpannedWithSourceEvalError {
             error: err_raw.error,
             source_span: err_raw.source_span,
-            env: err_raw.env,
             source: w.get_buf().to_string(),
         };
         expected_tree.assert_eq(&err.to_string());
@@ -250,118 +235,5 @@ mod tests {
         assert_eq!(err_raw.source_span, expected_span);
     }
 
-    #[test]
-    fn pretty_binop_div_zero() {
-        let lhs_val_id = 1.into();
-        let rhs_val_id = 2.into();
-        let res_val_id = 3.into();
-        let expr = Expr::BlockValue(
-            BlockValue {
-                items: vec![
-                    ValDef {
-                        id: lhs_val_id,
-                        rhs: Box::new(Expr::Const(42i32.into())),
-                    }
-                    .into(),
-                    ValDef {
-                        id: rhs_val_id,
-                        rhs: Box::new(Expr::Const(0i32.into())),
-                    }
-                    .into(),
-                    ValDef {
-                        id: res_val_id,
-                        rhs: Box::new(
-                            BinOp {
-                                kind: ArithOp::Divide.into(),
-                                left: Box::new(
-                                    ValUse {
-                                        val_id: lhs_val_id,
-                                        tpe: SType::SInt,
-                                    }
-                                    .into(),
-                                ),
-                                right: Box::new(
-                                    ValUse {
-                                        val_id: rhs_val_id,
-                                        tpe: SType::SInt,
-                                    }
-                                    .into(),
-                                ),
-                            }
-                            .into(),
-                        ),
-                    }
-                    .into(),
-                ],
-                result: Box::new(
-                    ValUse {
-                        val_id: res_val_id,
-                        tpe: SType::SInt,
-                    }
-                    .into(),
-                ),
-            }
-            .into(),
-        );
-        // check(
-        //     expr,
-        //     expect![[r#"
-        //           x Evaluation error
-        //            ,-[1:1]
-        //          1 | {
-        //          2 |   val v1 = 42
-        //          3 |   val v2 = 0
-        //          4 |   val v3 = v1 / v2
-        //            :            ^^^|^^^
-        //            :               `-- Arithmetic exception: (42) / (0) resulted in exception
-        //          5 |   v3
-        //          6 | }
-        //            `----
-        //     "#]],
-        // );
-        check_error_span(expr, (40, 7).into());
-    }
-
-    #[test]
-    fn pretty_out_of_bounds() {
-        let v1_id = 1.into();
-        let expr = Expr::BlockValue(
-            BlockValue {
-                items: vec![ValDef {
-                    id: v1_id,
-                    rhs: Box::new(Expr::Const(99999999i32.into())),
-                }
-                .into()],
-                result: Box::new(Expr::ByIndex(
-                    ByIndex::new(
-                        Expr::GlobalVars(GlobalVars::Outputs),
-                        ValUse {
-                            val_id: v1_id,
-                            tpe: SType::SInt,
-                        }
-                        .into(),
-                        None,
-                    )
-                    .unwrap()
-                    .into(),
-                )),
-            }
-            .into(),
-        );
-        // check(
-        //     expr,
-        //     expect![[r#"
-        //           x Evaluation error
-        //            ,-[1:1]
-        //          1 | {
-        //          2 |   val v1 = 99999999
-        //          3 |   OUTPUTS(v1)
-        //            :          ^^|^
-        //            :            `-- error: ByIndex: index Int(99999999) out of bounds for collection size 1
-        //          4 | }
-        //            `----
-        //     "#]],
-        // );
-        check_error_span(expr, (31, 4).into());
-    }
+    // TODO mini: restore tests that was here before minification (see git history of this file)
 }

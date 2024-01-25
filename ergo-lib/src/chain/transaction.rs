@@ -8,7 +8,6 @@ pub mod unsigned;
 use bounded_vec::BoundedVec;
 use ergo_chain_types::blake2b256_hash;
 pub use ergotree_interpreter::eval::context::TxIoVec;
-use ergotree_interpreter::eval::env::Env;
 use ergotree_interpreter::eval::extract_sigma_boolean;
 use ergotree_interpreter::eval::EvalError;
 use ergotree_interpreter::sigma_protocol::verifier::verify_signature;
@@ -369,7 +368,6 @@ pub fn verify_tx_input_proof(
     Ok(verifier
         .verify(
             &input_box.ergo_tree,
-            &Env::empty(),
             ctx,
             input.spending_proof.proof.clone(),
             message_to_sign.as_slice(),

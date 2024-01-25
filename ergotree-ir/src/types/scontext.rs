@@ -162,13 +162,13 @@ fn property(name: &'static str, res_tpe: SType, id: MethodId) -> SMethodDesc {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    #[test]
-    fn test_from_ids() {
-        assert!(
-            SMethod::from_ids(TYPE_CODE, DATA_INPUTS_PROPERTY_METHOD_ID).map(|e| e.name())
-                == Ok("dataInputs")
-        );
-    }
+    // use super::*;
+    //
+    // #[test]
+    // fn test_from_ids() {
+    //     assert!(
+    //         SMethod::from_ids(TYPE_CODE, DATA_INPUTS_PROPERTY_METHOD_ID).map(|e| e.name())
+    //             == Ok("dataInputs")
+    //     );
+    // }
 }

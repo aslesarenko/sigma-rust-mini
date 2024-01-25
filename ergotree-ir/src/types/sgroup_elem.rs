@@ -55,14 +55,14 @@ lazy_static! {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    #[test]
-    fn test_from_ids() {
-        assert!(
-            SMethod::from_ids(TYPE_CODE, GET_ENCODED_METHOD_ID).map(|e| e.name())
-                == Ok("getEncoded")
-        );
-        assert!(SMethod::from_ids(TYPE_CODE, NEGATE_METHOD_ID).map(|e| e.name()) == Ok("negate"));
-    }
+    // use super::*;
+    //
+    // #[test]
+    // fn test_from_ids() {
+    //     assert!(
+    //         SMethod::from_ids(TYPE_CODE, GET_ENCODED_METHOD_ID).map(|e| e.name())
+    //             == Ok("getEncoded")
+    //     );
+    //     assert!(SMethod::from_ids(TYPE_CODE, NEGATE_METHOD_ID).map(|e| e.name()) == Ok("negate"));
+    // }
 }

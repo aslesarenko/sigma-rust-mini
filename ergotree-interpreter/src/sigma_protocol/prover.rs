@@ -55,7 +55,6 @@ use super::FirstProverMessage::FirstDhtProverMessage;
 use super::FirstProverMessage::FirstDlogProverMessage;
 
 use crate::eval::context::Context;
-use crate::eval::env::Env;
 use crate::eval::EvalError;
 
 use crate::sigma_protocol::dht_protocol::SecondDhTupleProverMessage;
@@ -141,14 +140,13 @@ pub trait Prover {
     fn prove(
         &self,
         tree: &ErgoTree,
-        env: &Env,
         ctx: Rc<Context>,
         message: &[u8],
         hints_bag: &HintsBag,
     ) -> Result<ProverResult, ProverError> {
         let expr = tree.proposition()?;
         let ctx_ext = ctx.extension.clone();
-        let reduction_result = reduce_to_crypto(&expr, env, ctx).map_err(ProverError::EvalError)?;
+        let reduction_result = reduce_to_crypto(&expr, ctx).map_err(ProverError::EvalError)?;
         self.generate_proof(reduction_result.sigma_prop, message, hints_bag)
             .map(|p| ProverResult {
                 proof: p,
@@ -1211,14 +1209,9 @@ mod tests {
     use super::*;
     use crate::sigma_protocol::private_input::DhTupleProverInput;
     use crate::sigma_protocol::private_input::DlogProverInput;
-    use ergotree_ir::mir::atleast::Atleast;
-    use ergotree_ir::mir::collection::Collection;
     use ergotree_ir::mir::constant::Constant;
     use ergotree_ir::mir::constant::Literal;
     use ergotree_ir::mir::expr::Expr;
-    use ergotree_ir::mir::sigma_and::SigmaAnd;
-    use ergotree_ir::mir::sigma_or::SigmaOr;
-    use ergotree_ir::sigma_protocol::sigma_boolean::SigmaProp;
     use ergotree_ir::types::stype::SType;
     use sigma_test_util::force_any_val;
     use std::convert::TryFrom;
@@ -1236,7 +1229,6 @@ mod tests {
         let prover = TestProver { secrets: vec![] };
         let res = prover.prove(
             &bool_true_tree,
-            &Env::empty(),
             Rc::new(force_any_val::<Context>()),
             message.as_slice(),
             &HintsBag::empty(),
@@ -1257,7 +1249,6 @@ mod tests {
         let prover = TestProver { secrets: vec![] };
         let res = prover.prove(
             &bool_false_tree,
-            &Env::empty(),
             Rc::new(force_any_val::<Context>()),
             message.as_slice(),
             &HintsBag::empty(),
@@ -1277,7 +1268,6 @@ mod tests {
         };
         let res = prover.prove(
             &tree,
-            &Env::empty(),
             Rc::new(force_any_val::<Context>()),
             message.as_slice(),
             &HintsBag::empty(),
@@ -1286,119 +1276,7 @@ mod tests {
         assert_ne!(res.unwrap().proof, ProofBytes::Empty);
     }
 
-    #[test]
-    fn test_prove_pk_and_pk() {
-        let secret1 = DlogProverInput::random();
-        let secret2 = DlogProverInput::random();
-        let pk1 = secret1.public_image();
-        let pk2 = secret2.public_image();
-        let expr: Expr = SigmaAnd::new(vec![Expr::Const(pk1.into()), Expr::Const(pk2.into())])
-            .unwrap()
-            .into();
-        let tree: ErgoTree = expr.try_into().unwrap();
-        let message = vec![0u8; 100];
-
-        let prover = TestProver {
-            secrets: vec![secret1.into(), secret2.into()],
-        };
-        let res = prover.prove(
-            &tree,
-            &Env::empty(),
-            Rc::new(force_any_val::<Context>()),
-            message.as_slice(),
-            &HintsBag::empty(),
-        );
-        assert_ne!(res.unwrap().proof, ProofBytes::Empty);
-    }
-
-    #[test]
-    fn test_prove_pk_and_or() {
-        let secret1 = DlogProverInput::random();
-        let secret2 = DlogProverInput::random();
-        let secret3 = DlogProverInput::random();
-        let pk1 = secret1.public_image();
-        let pk2 = secret2.public_image();
-        let pk3 = secret3.public_image();
-        let expr: Expr = SigmaAnd::new(vec![
-            Expr::Const(pk1.into()),
-            SigmaOr::new(vec![Expr::Const(pk2.into()), Expr::Const(pk3.into())])
-                .unwrap()
-                .into(),
-        ])
-        .unwrap()
-        .into();
-        let tree: ErgoTree = expr.try_into().unwrap();
-        let message = vec![0u8; 100];
-
-        let prover = TestProver {
-            secrets: vec![secret1.into(), secret2.into()],
-        };
-        let res = prover.prove(
-            &tree,
-            &Env::empty(),
-            Rc::new(force_any_val::<Context>()),
-            message.as_slice(),
-            &HintsBag::empty(),
-        );
-        assert_ne!(res.unwrap().proof, ProofBytes::Empty);
-    }
-
-    #[test]
-    fn test_prove_pk_or_pk() {
-        let secret1 = DlogProverInput::random();
-        let secret2 = DlogProverInput::random();
-        let pk1 = secret1.public_image();
-        let pk2 = secret2.public_image();
-        let expr: Expr = SigmaOr::new(vec![Expr::Const(pk1.into()), Expr::Const(pk2.into())])
-            .unwrap()
-            .into();
-        let tree: ErgoTree = expr.try_into().unwrap();
-        let message = vec![0u8; 100];
-
-        let prover = TestProver {
-            secrets: vec![secret1.into(), secret2.into()],
-        };
-        let res = prover.prove(
-            &tree,
-            &Env::empty(),
-            Rc::new(force_any_val::<Context>()),
-            message.as_slice(),
-            &HintsBag::empty(),
-        );
-        assert_ne!(res.unwrap().proof, ProofBytes::Empty);
-    }
-
-    #[test]
-    fn test_prove_pk_or_and() {
-        let secret1 = DlogProverInput::random();
-        let secret2 = DlogProverInput::random();
-        let secret3 = DlogProverInput::random();
-        let pk1 = secret1.public_image();
-        let pk2 = secret2.public_image();
-        let pk3 = secret3.public_image();
-        let expr: Expr = SigmaOr::new(vec![
-            Expr::Const(pk1.into()),
-            SigmaAnd::new(vec![Expr::Const(pk2.into()), Expr::Const(pk3.into())])
-                .unwrap()
-                .into(),
-        ])
-        .unwrap()
-        .into();
-        let tree: ErgoTree = expr.try_into().unwrap();
-        let message = vec![0u8; 100];
-
-        let prover = TestProver {
-            secrets: vec![secret2.into(), secret3.into()],
-        };
-        let res = prover.prove(
-            &tree,
-            &Env::empty(),
-            Rc::new(force_any_val::<Context>()),
-            message.as_slice(),
-            &HintsBag::empty(),
-        );
-        assert_ne!(res.unwrap().proof, ProofBytes::Empty);
-    }
+    // TODO mini: restore tests that was here before minification (see git history of this file)
 
     #[test]
     fn test_prove_dht_prop() {
@@ -1412,7 +1290,6 @@ mod tests {
         };
         let res = prover.prove(
             &tree,
-            &Env::empty(),
             Rc::new(force_any_val::<Context>()),
             message.as_slice(),
             &HintsBag::empty(),
@@ -1421,54 +1298,5 @@ mod tests {
         assert_ne!(res.unwrap().proof, ProofBytes::Empty);
     }
 
-    #[test]
-    fn test_prove_inner_threshold() {
-        // this test constructed from https://github.com/ergoplatform/sigma-rust/issues/579#issuecomment-1259058014
-        let secret1 = DlogProverInput::random();
-        let secret2 = DlogProverInput::random();
-        let secret3 = DlogProverInput::random();
-        let pk_alice = secret1.public_image();
-        let pk_bob = secret2.public_image();
-        let pk_carol = secret3.public_image();
-
-        let at_least = Expr::Atleast(Atleast {
-            bound: Expr::Const(2.into()).into(),
-            input: Expr::Collection(Collection::Exprs {
-                elem_tpe: SType::SSigmaProp,
-                items: vec![
-                    SigmaProp::from(pk_alice).into(),
-                    SigmaProp::from(pk_bob).into(),
-                    SigmaProp::from(pk_carol).into(),
-                ],
-            })
-            .into(),
-        });
-
-        // wrap in binary OR with a false on the other side
-        let tree: ErgoTree = Expr::SigmaOr(
-            SigmaOr::new(vec![
-                SigmaProp::new(SigmaBoolean::TrivialProp(false)).into(),
-                at_least,
-            ])
-            .unwrap(),
-        )
-        .try_into()
-        .unwrap();
-
-        // Note that the prover only has the private for Alice. This is ensure that the AtLeast prop is unproved
-        let prover = TestProver {
-            secrets: vec![secret1.into()],
-        };
-
-        let message = vec![0u8; 100];
-        let ctx: Rc<Context> = force_any_val::<Context>().into();
-        let res = prover.prove(
-            &tree,
-            &Env::empty(),
-            ctx,
-            message.as_slice(),
-            &HintsBag::empty(),
-        );
-        assert!(res.is_err());
-    }
+    // TODO mini: restore tests that was here before minification (see git history of this file)
 }

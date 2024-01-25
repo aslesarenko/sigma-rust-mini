@@ -356,7 +356,6 @@ impl TryFrom<Value> for Constant {
             Value::Header(_) => Err("Cannot convert Value::Header(_) into Constant".into()),
             Value::PreHeader(_) => Err("Cannot convert Value::PreHeader(_) into Constant".into()),
             Value::Global => Err("Cannot convert Value::Global into Constant".into()),
-            Value::Lambda(_) => Err("Cannot convert Value::Lambda(_) into Constant".into()),
         }
     }
 }

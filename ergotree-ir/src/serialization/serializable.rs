@@ -1,7 +1,6 @@
 //! Serialization of Ergo types
 use crate::chain::ergo_box::RegisterValueError;
 use crate::ergo_tree::ErgoTreeHeaderError;
-use crate::mir::val_def::ValId;
 use crate::mir::{constant::TryExtractFromError, expr::InvalidArgumentError};
 use crate::types::type_unify::TypeUnificationError;
 
@@ -78,9 +77,6 @@ pub enum SigmaParsingError {
     /// Tuple items out of bounds
     #[error("Tuple items out of bounds: {0}")]
     TupleItemsOutOfBounds(usize),
-    /// ValDef type for a given index not found in ValDefTypeStore store
-    #[error("ValDef type for an index {0:?} not found in ValDefTypeStore store")]
-    ValDefIdNotFound(ValId),
     /// Invalid argument on node creation
     #[error("Invalid argument: {0:?}")]
     InvalidArgument(#[from] InvalidArgumentError),
