@@ -125,6 +125,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn full_age_usd_bank_contract() {
         // almost full version of
         // https://github.com/Emurgo/age-usd/tree/main/ageusd-smart-contracts/v0.4

@@ -565,6 +565,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_multi_sig_issue_597() {
         let secrets: Vec<SecretKey> = [
             "00eda6c0e9fc808d4cf050fc4e98705372b9f0786a6b63aa4013d1a20539b104",

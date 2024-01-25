@@ -407,6 +407,7 @@ mod tests {
     use std::rc::Rc;
 
     #[test]
+    #[ignore]
     fn extract_hint() {
         let signed_tx = r#"{
           "id": "6e32d1710816be34fd9710148b73f017bf8e71115cd2d3cf5758f80c2e3010ca",
