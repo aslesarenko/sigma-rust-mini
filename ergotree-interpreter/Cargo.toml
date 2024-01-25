@@ -40,7 +40,7 @@ miette = { workspace = true }
 hashbrown = "0.14.1"
 
 [features]
-default = ["json"]
+default = ["json", "arbitrary"]
 json = ["serde", "serde_json", "serde_with", "bounded-vec/serde"]
 arbitrary = [
     "proptest",
