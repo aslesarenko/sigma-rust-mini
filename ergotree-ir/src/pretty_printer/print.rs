@@ -22,7 +22,6 @@ use crate::mir::coll_size::SizeOf;
 use crate::mir::coll_slice::Slice;
 use crate::mir::collection::Collection;
 use crate::mir::constant::Constant;
-use crate::mir::create_avl_tree::CreateAvlTree;
 use crate::mir::create_prove_dh_tuple::CreateProveDhTuple;
 use crate::mir::create_provedlog::CreateProveDlog;
 use crate::mir::decode_point::DecodePoint;
@@ -170,7 +169,6 @@ impl Print for Expr {
             Expr::Exponentiate(v) => v.print(w),
             Expr::XorOf(v) => v.print(w),
             Expr::TreeLookup(v) => v.expr().print(w),
-            Expr::CreateAvlTree(v) => v.print(w),
         }
     }
 }
@@ -1105,19 +1103,3 @@ impl Print for TreeLookup {
     }
 }
 
-impl Print for CreateAvlTree {
-    fn print(&self, w: &mut dyn Printer) -> Result<Expr, PrintError> {
-        write!(w, "avlTree(")?;
-        let digest = self.digest.print(w)?;
-        write!(w, ", ")?;
-        let key_length = self.key_length.print(w)?;
-        write!(w, ")")?;
-        Ok(CreateAvlTree {
-            digest: Box::new(digest),
-            key_length: Box::new(key_length),
-            flags: self.flags.clone(),
-            value_length: self.value_length.clone(),
-        }
-        .into())
-    }
-}

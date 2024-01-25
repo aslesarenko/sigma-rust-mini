@@ -33,7 +33,6 @@ use super::constant::ConstantPlaceholder;
 use super::constant::Literal;
 use super::constant::TryExtractFrom;
 use super::constant::TryExtractFromError;
-use super::create_avl_tree::CreateAvlTree;
 use super::create_provedlog::CreateProveDlog;
 use super::decode_point::DecodePoint;
 use super::exponentiate::Exponentiate;
@@ -222,8 +221,6 @@ pub enum Expr {
     XorOf(XorOf),
     /// Perform a lookup by key in an AVL tree
     TreeLookup(Spanned<TreeLookup>),
-    /// Create an AVL tree
-    CreateAvlTree(CreateAvlTree),
 }
 
 impl Expr {
@@ -295,7 +292,6 @@ impl Expr {
             Expr::ExtractBytes(v) => v.tpe(),
             Expr::ExtractBytesWithNoRef(v) => v.tpe(),
             Expr::TreeLookup(v) => v.expr().tpe(),
-            Expr::CreateAvlTree(v) => v.tpe(),
         }
     }
 

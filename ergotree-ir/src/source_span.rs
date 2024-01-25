@@ -198,7 +198,6 @@ impl Expr {
             Expr::Exponentiate(_) => SourceSpan::empty(),
             Expr::XorOf(_) => SourceSpan::empty(),
             Expr::TreeLookup(op) => op.source_span,
-            Expr::CreateAvlTree(_) => SourceSpan::empty(),
         }
     }
 }

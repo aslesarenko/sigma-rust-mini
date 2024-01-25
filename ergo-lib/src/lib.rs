@@ -21,7 +21,6 @@
 #![deny(clippy::panic)]
 
 pub mod chain;
-pub mod constants;
 mod utils;
 pub mod wallet;
 

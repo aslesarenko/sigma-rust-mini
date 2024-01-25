@@ -83,7 +83,6 @@ impl Evaluable for Expr {
             Expr::ExtractBytes(op) => op.eval(env, ctx),
             Expr::ExtractBytesWithNoRef(op) => op.eval(env, ctx),
             Expr::TreeLookup(op) => op.eval(env, ctx),
-            Expr::CreateAvlTree(op) => op.eval(env, ctx),
         };
         res.enrich_err(self.span(), env.clone())
     }
