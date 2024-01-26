@@ -39,6 +39,4 @@ impl Contract {
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
-mod tests {
-
-}
+mod tests {}

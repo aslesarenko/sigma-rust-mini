@@ -23,6 +23,7 @@ impl TypeCheckError {
 /// Type checks the given expression
 pub fn type_check(e: Expr) -> Result<Expr, TypeCheckError> {
     // not really a relevant check, since such kind of check should be in BinOp::new()
+    #[allow(clippy::match_single_binding)]
     match &e {
         _ => Ok(e),
     }

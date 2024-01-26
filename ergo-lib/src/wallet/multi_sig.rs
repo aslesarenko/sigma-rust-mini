@@ -389,10 +389,8 @@ mod tests {
     use crate::chain::transaction::Transaction;
     use crate::ergotree_interpreter::eval::context::Context;
     use crate::ergotree_interpreter::eval::reduce_to_crypto;
-    use crate::ergotree_interpreter::sigma_protocol::private_input::{
-        DlogProverInput
-    };
-    use crate::ergotree_interpreter::sigma_protocol::prover::{ProofBytes};
+    use crate::ergotree_interpreter::sigma_protocol::private_input::DlogProverInput;
+    use crate::ergotree_interpreter::sigma_protocol::prover::ProofBytes;
     // use crate::ergotree_interpreter::sigma_protocol::verifier::{TestVerifier, Verifier};
     use crate::ergotree_ir::chain::address::AddressEncoder;
     use crate::ergotree_ir::chain::address::{Address, NetworkPrefix};

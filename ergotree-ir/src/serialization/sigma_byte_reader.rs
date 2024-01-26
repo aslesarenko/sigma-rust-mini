@@ -54,7 +54,6 @@ pub trait SigmaByteRead: ReadSigmaVlqExt {
 
     /// Set new constant store
     fn set_constant_store(&mut self, constant_store: ConstantStore);
-
 }
 
 impl<R: Read> Read for SigmaByteReader<R> {
@@ -75,5 +74,4 @@ impl<R: ReadSigmaVlqExt> SigmaByteRead for SigmaByteReader<R> {
     fn set_constant_store(&mut self, constant_store: ConstantStore) {
         self.constant_store = constant_store;
     }
-
 }

@@ -75,7 +75,6 @@ impl Expr {
         let tree = format!("{:#?}", self);
         tree
     }
-
 }
 
 impl<T: Into<Literal> + LiftIntoSType> From<T> for Expr {
@@ -198,6 +197,7 @@ pub(crate) mod arbitrary {
         type Strategy = BoxedStrategy<Self>;
 
         fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            #[allow(clippy::match_single_binding)]
             match args.tpe {
                 _ => prop_oneof![
                     any_with::<Constant>(args.tpe.clone().into())

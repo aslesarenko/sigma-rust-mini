@@ -43,6 +43,7 @@ pub enum STypeCompanion {
 }
 
 impl STypeCompanion {
+    #[allow(clippy::needless_lifetimes)]
     fn method_desc<'a>(&'a self) -> &'a Vec<&'static SMethodDesc> {
         match self {
             STypeCompanion::Context => &scontext::METHOD_DESC,

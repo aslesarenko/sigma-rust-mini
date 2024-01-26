@@ -336,7 +336,4 @@ lazy_static! {
 }
 
 #[cfg(test)]
-mod tests {
-
-
-}
+mod tests {}

@@ -260,12 +260,7 @@ pub fn sign_tx_input(
         hints_bag = bag.all_hints_for_input(input_idx);
     }
     prover
-        .prove(
-            &input_box.ergo_tree,
-            ctx,
-            message_to_sign,
-            &hints_bag,
-        )
+        .prove(&input_box.ergo_tree, ctx, message_to_sign, &hints_bag)
         .map(|proof| Input::new(unsigned_input.box_id, proof.into()))
         .map_err(|e| TxSigningError::ProverError(e, input_idx))
 }

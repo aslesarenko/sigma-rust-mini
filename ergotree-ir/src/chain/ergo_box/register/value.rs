@@ -129,7 +129,7 @@ fn tuple_to_constant(t: &Tuple) -> Result<Constant, String> {
     let values = t.items.try_mapped_ref(|tuple_item| match tuple_item {
         Expr::Const(c) => Ok(c.v.clone()),
         Expr::Tuple(t) => Ok(tuple_to_constant(t)?.v),
-        e => return Err(format!("Unexpected value in tuple: {e:?}")),
+        e => Err(format!("Unexpected value in tuple: {e:?}")),
     })?;
     let v = Literal::Tup(values);
     let c = Constant { tpe: t.tpe(), v };

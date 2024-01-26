@@ -1,7 +1,7 @@
 //! Address types
 
-use crate::ergo_tree::ErgoTreeError;
 use crate::ergo_tree::ErgoTree;
+use crate::ergo_tree::ErgoTreeError;
 use crate::mir::constant::Constant;
 use crate::mir::expr::Expr;
 use crate::serialization::SigmaParsingError;

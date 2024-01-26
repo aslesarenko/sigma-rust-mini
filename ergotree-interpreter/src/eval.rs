@@ -52,10 +52,7 @@ pub struct ReductionResult {
 }
 
 /// Evaluate the given expression by reducing it to SigmaBoolean value.
-pub fn reduce_to_crypto(
-    expr: &Expr,
-    _ctx: Rc<Context>,
-) -> Result<ReductionResult, EvalError> {
+pub fn reduce_to_crypto(expr: &Expr, _ctx: Rc<Context>) -> Result<ReductionResult, EvalError> {
     fn inner(expr: &Expr) -> Result<ReductionResult, EvalError> {
         let cost_accum = CostAccumulator::new(0, None);
         let mut ectx = EvalContext::new(cost_accum);
@@ -102,8 +99,7 @@ pub fn reduce_to_crypto(
     let (spanned_expr, printed_expr_str) = expr
         .pretty_print()
         .map_err(|e| EvalError::Misc(e.to_string()))?;
-    inner(&spanned_expr)
-        .map_err(|e| e.wrap_spanned_with_src(printed_expr_str.to_string()))
+    inner(&spanned_expr).map_err(|e| e.wrap_spanned_with_src(printed_expr_str.to_string()))
 }
 
 /// Expects SigmaProp constant value and returns it's value. Otherwise, returns an error.

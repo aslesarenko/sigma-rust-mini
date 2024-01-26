@@ -83,4 +83,3 @@ impl Default for PosTrackingWriter {
         Self::new()
     }
 }
-
