@@ -15,7 +15,6 @@ use self::context::Context;
 /// Context(blockchain) for the interpreter
 pub mod context;
 
-pub(crate) mod collection;
 pub(crate) mod cost_accum;
 pub(crate) mod costs;
 mod error;

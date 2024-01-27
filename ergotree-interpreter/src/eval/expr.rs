@@ -17,7 +17,6 @@ impl Evaluable for Expr {
             Expr::ConstPlaceholder(_) => Err(EvalError::UnexpectedExpr(
                 ("ConstPlaceholder is not supported").to_string(),
             )),
-            Expr::Collection(op) => op.eval(ctx),
             Expr::Tuple(op) => op.eval(ctx),
         };
         res.enrich_err(self.span())

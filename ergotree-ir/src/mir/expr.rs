@@ -6,7 +6,6 @@ use std::convert::TryInto;
 use crate::types::stype::LiftIntoSType;
 use crate::types::stype::SType;
 
-use super::collection::Collection;
 use super::constant::Constant;
 use super::constant::ConstantPlaceholder;
 use super::constant::Literal;
@@ -27,8 +26,6 @@ pub enum Expr {
     Const(Constant),
     /// Placeholder for a constant
     ConstPlaceholder(ConstantPlaceholder),
-    /// Collection declaration (array of expressions of the same type)
-    Collection(Collection),
     /// Tuple declaration
     Tuple(Tuple),
 }
@@ -38,7 +35,6 @@ impl Expr {
     pub fn tpe(&self) -> SType {
         match self {
             Expr::Const(v) => v.tpe.clone(),
-            Expr::Collection(v) => v.tpe(),
             Expr::ConstPlaceholder(v) => v.tpe.clone(),
             Expr::Tuple(v) => v.tpe(),
         }

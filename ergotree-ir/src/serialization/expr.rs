@@ -1,9 +1,6 @@
 use super::{op_code::OpCode, sigma_byte_writer::SigmaByteWrite};
 use crate::has_opcode::HasOpCode;
 use crate::has_opcode::HasStaticOpCode;
-use crate::mir::collection::bool_const_coll_sigma_parse;
-use crate::mir::collection::coll_sigma_parse;
-use crate::mir::collection::coll_sigma_serialize;
 use crate::mir::constant::Constant;
 use crate::mir::constant::ConstantPlaceholder;
 use crate::mir::expr::Expr;
@@ -39,8 +36,6 @@ impl Expr {
                         Ok(Expr::ConstPlaceholder(cp))
                     }
                 }
-                OpCode::COLL => Ok(coll_sigma_parse(r)?.into()),
-                OpCode::COLL_OF_BOOL_CONST => Ok(bool_const_coll_sigma_parse(r)?.into()),
                 Tuple::OP_CODE => Ok(Tuple::sigma_parse(r)?.into()),
                 o => Err(SigmaParsingError::NotImplementedOpCode(format!(
                     "{0}(shift {1})",
@@ -74,10 +69,6 @@ impl SigmaSerializable for Expr {
                 None => c.sigma_serialize(w),
             },
             Expr::ConstPlaceholder(cp) => cp.sigma_serialize_w_opcode(w),
-            Expr::Collection(op) => {
-                op.op_code().sigma_serialize(w)?;
-                coll_sigma_serialize(op, w)
-            }
             Expr::Tuple(op) => op.sigma_serialize_w_opcode(w),
         }
     }

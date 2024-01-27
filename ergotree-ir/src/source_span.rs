@@ -67,7 +67,6 @@ impl Expr {
         match self {
             Expr::Const(_) => SourceSpan::empty(),
             Expr::ConstPlaceholder(_) => SourceSpan::empty(),
-            Expr::Collection(_) => SourceSpan::empty(),
             Expr::Tuple(_) => SourceSpan::empty(),
         }
     }

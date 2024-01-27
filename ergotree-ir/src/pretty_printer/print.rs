@@ -1,6 +1,5 @@
 use thiserror::Error;
 
-use crate::mir::collection::Collection;
 use crate::mir::constant::Constant;
 use crate::mir::expr::Expr;
 use crate::mir::tuple::Tuple;
@@ -37,7 +36,6 @@ impl Print for Expr {
         match self {
             Expr::Const(v) => v.print(w),
             Expr::ConstPlaceholder(_) => Ok(self.clone()),
-            Expr::Collection(v) => v.print(w),
             Expr::Tuple(v) => v.print(w),
         }
     }
@@ -62,29 +60,3 @@ impl Print for Tuple {
     }
 }
 
-impl Print for Collection {
-    fn print(&self, w: &mut dyn Printer) -> Result<Expr, PrintError> {
-        write!(w, "Coll[{}](", self.tpe())?;
-        match self {
-            Collection::BoolConstants(bools) => {
-                for b in bools {
-                    write!(w, "{}, ", b)?;
-                }
-                write!(w, ")")?;
-                Ok(Collection::from_bools(bools.clone()).into())
-            }
-            Collection::Exprs { elem_tpe, items } => {
-                let items = items
-                    .iter()
-                    .map(|i| {
-                        write!(w, ", ")?;
-                        i.print(w)
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
-                write!(w, ")")?;
-                #[allow(clippy::unwrap_used)] // we only added spans
-                Ok(Collection::new(elem_tpe.clone(), items).unwrap().into())
-            }
-        }
-    }
-}
