@@ -11,7 +11,6 @@ use super::constant::ConstantPlaceholder;
 use super::constant::Literal;
 use super::constant::TryExtractFrom;
 use super::constant::TryExtractFromError;
-use super::tuple::Tuple;
 
 extern crate derive_more;
 use bounded_vec::BoundedVecOutOfBounds;
@@ -26,8 +25,6 @@ pub enum Expr {
     Const(Constant),
     /// Placeholder for a constant
     ConstPlaceholder(ConstantPlaceholder),
-    /// Tuple declaration
-    Tuple(Tuple),
 }
 
 impl Expr {
@@ -36,7 +33,6 @@ impl Expr {
         match self {
             Expr::Const(v) => v.tpe.clone(),
             Expr::ConstPlaceholder(v) => v.tpe.clone(),
-            Expr::Tuple(v) => v.tpe(),
         }
     }
 

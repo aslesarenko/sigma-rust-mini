@@ -19,7 +19,6 @@ pub(crate) mod cost_accum;
 pub(crate) mod costs;
 mod error;
 pub(crate) mod expr;
-pub(crate) mod tuple;
 
 pub use error::EvalError;
 

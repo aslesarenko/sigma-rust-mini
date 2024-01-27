@@ -2,7 +2,6 @@ use thiserror::Error;
 
 use crate::mir::constant::Constant;
 use crate::mir::expr::Expr;
-use crate::mir::tuple::Tuple;
 
 use super::PosTrackingWriter;
 use super::Printer;
@@ -36,7 +35,6 @@ impl Print for Expr {
         match self {
             Expr::Const(v) => v.print(w),
             Expr::ConstPlaceholder(_) => Ok(self.clone()),
-            Expr::Tuple(v) => v.print(w),
         }
     }
 }
@@ -47,16 +45,3 @@ impl Print for Constant {
         Ok(self.clone().into())
     }
 }
-
-impl Print for Tuple {
-    fn print(&self, w: &mut dyn Printer) -> Result<Expr, PrintError> {
-        write!(w, "(")?;
-        let items = self.items.try_mapped_ref(|i| {
-            write!(w, ", ")?;
-            i.print(w)
-        })?;
-        write!(w, ")")?;
-        Ok(Tuple { items }.into())
-    }
-}
-

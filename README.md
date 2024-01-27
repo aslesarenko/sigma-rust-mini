@@ -32,6 +32,12 @@ can start from this library and then switch to full-blown [sigma-rust](https://g
 
 See [Architecture](docs/architecture.md) for high-level overview.
 
+## Limitations of sigma-rust-mini
+
+This library has the following limitations vs the original sigma-rust:
+  - Rudimentary ErgoTree: only Constant
+  - 
+
 ## Crates
 
 [ergo-lib](ergo-lib) 

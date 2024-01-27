@@ -4,7 +4,6 @@ use crate::has_opcode::HasStaticOpCode;
 use crate::mir::constant::Constant;
 use crate::mir::constant::ConstantPlaceholder;
 use crate::mir::expr::Expr;
-use crate::mir::tuple::Tuple;
 use crate::serialization::SigmaSerializeResult;
 use crate::serialization::{
     sigma_byte_reader::SigmaByteRead, SigmaParsingError, SigmaSerializable,
@@ -36,7 +35,6 @@ impl Expr {
                         Ok(Expr::ConstPlaceholder(cp))
                     }
                 }
-                Tuple::OP_CODE => Ok(Tuple::sigma_parse(r)?.into()),
                 o => Err(SigmaParsingError::NotImplementedOpCode(format!(
                     "{0}(shift {1})",
                     o.value(),
@@ -69,7 +67,6 @@ impl SigmaSerializable for Expr {
                 None => c.sigma_serialize(w),
             },
             Expr::ConstPlaceholder(cp) => cp.sigma_serialize_w_opcode(w),
-            Expr::Tuple(op) => op.sigma_serialize_w_opcode(w),
         }
     }
 
