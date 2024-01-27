@@ -105,7 +105,6 @@ pub fn make_context<T: ErgoTransaction>(
     tx_ctx: &TransactionContext<T>,
     self_index: usize,
 ) -> Result<Context, TransactionContextError> {
-
     // Find self_box by matching BoxIDs
     let self_box = tx_ctx
         .get_input_box(

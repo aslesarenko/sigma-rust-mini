@@ -19,13 +19,11 @@
 #![deny(clippy::panic)]
 
 mod base16_bytes;
-mod block_id;
 mod digest32;
 pub mod ec_point;
 
 pub use base16_bytes::Base16DecodedBytes;
 pub use base16_bytes::Base16EncodedBytes;
-pub use block_id::BlockId;
 pub use digest32::blake2b256_hash;
 pub use digest32::ADDigest;
 pub use digest32::Digest;

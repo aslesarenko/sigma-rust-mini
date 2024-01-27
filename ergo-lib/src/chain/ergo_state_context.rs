@@ -2,13 +2,12 @@
 
 /// Blockchain state (last headers, etc.)
 #[derive(PartialEq, Eq, Debug, Clone, Default)]
-pub struct ErgoStateContext {
-}
+pub struct ErgoStateContext {}
 
 impl ErgoStateContext {
     /// Create an ErgoStateContext instance
     pub fn new() -> ErgoStateContext {
-        ErgoStateContext { }
+        ErgoStateContext {}
     }
 }
 
@@ -22,9 +21,7 @@ mod arbitrary {
         type Strategy = BoxedStrategy<Self>;
 
         fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
-            (any::<()>())
-                .prop_map(|_| Self::new())
-                .boxed()
+            (any::<()>()).prop_map(|_| Self::new()).boxed()
         }
     }
 }

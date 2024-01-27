@@ -50,26 +50,14 @@ mod arbitrary {
                 of(vec(any::<ErgoBox>(), 1..3)),
                 any::<ContextExtension>(),
             )
-                .prop_map(
-                    |(
-                        self_box,
-                        outputs,
-                        inputs,
-                        data_inputs,
-                        extension,
-                    )| {
-                        Self {
-                            self_box: Arc::new(self_box),
-                            outputs: outputs.into_iter().map(Arc::new).collect(),
-                            data_inputs: data_inputs.map(|v| {
-                                TxIoVec::from_vec(v.into_iter().map(Arc::new).collect()).unwrap()
-                            }),
-                            inputs: TxIoVec::from_vec(inputs.into_iter().map(Arc::new).collect())
-                                .unwrap(),
-                            extension,
-                        }
-                    },
-                )
+                .prop_map(|(self_box, outputs, inputs, data_inputs, extension)| Self {
+                    self_box: Arc::new(self_box),
+                    outputs: outputs.into_iter().map(Arc::new).collect(),
+                    data_inputs: data_inputs
+                        .map(|v| TxIoVec::from_vec(v.into_iter().map(Arc::new).collect()).unwrap()),
+                    inputs: TxIoVec::from_vec(inputs.into_iter().map(Arc::new).collect()).unwrap(),
+                    extension,
+                })
                 .boxed()
         }
 
