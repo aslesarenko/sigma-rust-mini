@@ -34,9 +34,15 @@ See [Architecture](docs/architecture.md) for high-level overview.
 
 ## Limitations of sigma-rust-mini
 
-This library has the following limitations vs the original sigma-rust:
-  - Rudimentary ErgoTree: only Constant
-  - 
+This library has the limitations vs the original sigma-rust described below.
+
+#### Rudimentary ErgoTree
+Only Constant and ConstantPlaceholder nodes allowed in sigma-rust-mini. And
+because ErgoTree root expression should be of type SigmaProp, then only Literal::SigmaProp can be in
+the ErgoTree.
+
+#### Limited Addresses
+P2S addresses are supported but can only contain rudimentary ErgoTrees.
 
 ## Crates
 

@@ -32,8 +32,6 @@ mod constant_placeholder;
 
 pub use constant_placeholder::*;
 
-use super::avl_tree_data::AvlTreeData;
-use super::avl_tree_data::AvlTreeFlags;
 use super::value::NativeColl;
 use super::value::StoreWrapped;
 use super::value::Value;
@@ -70,10 +68,6 @@ pub enum Literal {
     SigmaProp(Box<SigmaProp>),
     /// GroupElement
     GroupElement(Box<EcPoint>),
-    /// AVL tree
-    AvlTree(Box<AvlTreeData>),
-    /// Ergo box
-    CBox(Arc<ErgoBox>),
     /// Collection
     Coll(CollKind<Literal>),
     /// Option type
@@ -112,8 +106,6 @@ impl std::fmt::Debug for Literal {
             Literal::BigInt(v) => v.fmt(f),
             Literal::SigmaProp(v) => v.fmt(f),
             Literal::GroupElement(v) => v.fmt(f),
-            Literal::AvlTree(v) => v.fmt(f),
-            Literal::CBox(v) => v.fmt(f),
         }
     }
 }
@@ -169,8 +161,6 @@ impl std::fmt::Display for Literal {
             Literal::BigInt(v) => v.fmt(f),
             Literal::SigmaProp(v) => v.fmt(f),
             Literal::GroupElement(v) => v.fmt(f),
-            Literal::AvlTree(v) => write!(f, "AvlTree({:?})", v),
-            Literal::CBox(v) => write!(f, "ErgoBox({:?})", v),
         }
     }
 }
@@ -226,18 +216,6 @@ impl From<SigmaProp> for Literal {
 impl From<EcPoint> for Literal {
     fn from(v: EcPoint) -> Literal {
         Literal::GroupElement(Box::new(v))
-    }
-}
-
-impl From<Arc<ErgoBox>> for Literal {
-    fn from(b: Arc<ErgoBox>) -> Self {
-        Literal::CBox(b)
-    }
-}
-
-impl From<ErgoBox> for Literal {
-    fn from(b: ErgoBox) -> Self {
-        Literal::CBox(Arc::new(b))
     }
 }
 
@@ -300,7 +278,6 @@ impl TryFrom<Value> for Constant {
             }),
             Value::SigmaProp(s) => Ok(Constant::from(*s)),
             Value::GroupElement(e) => Ok(Constant::from(*e)),
-            Value::CBox(i) => Ok(Constant::from(i)),
             Value::Coll(coll) => {
                 let (v, tpe) = match coll {
                     CollKind::NativeColl(n) => (
@@ -351,7 +328,6 @@ impl TryFrom<Value> for Constant {
                     Err("Can't convert Value:Tup element".into())
                 }
             }
-            Value::AvlTree(a) => Ok(Constant::from(*a)),
         }
     }
 }
@@ -424,24 +400,6 @@ impl From<EcPoint> for Constant {
         Constant {
             tpe: SType::SGroupElement,
             v: v.into(),
-        }
-    }
-}
-
-impl From<Arc<ErgoBox>> for Constant {
-    fn from(b: Arc<ErgoBox>) -> Self {
-        Constant {
-            tpe: SType::SBox,
-            v: b.into(),
-        }
-    }
-}
-
-impl From<ErgoBox> for Constant {
-    fn from(b: ErgoBox) -> Self {
-        Constant {
-            tpe: SType::SBox,
-            v: b.into(),
         }
     }
 }
@@ -527,24 +485,6 @@ impl From<BigInt256> for Constant {
         Constant {
             tpe: SType::SBigInt,
             v: Literal::BigInt(b),
-        }
-    }
-}
-
-impl From<AvlTreeData> for Constant {
-    fn from(a: AvlTreeData) -> Self {
-        Constant {
-            tpe: SType::SAvlTree,
-            v: Literal::AvlTree(Box::new(a)),
-        }
-    }
-}
-
-impl From<AvlTreeFlags> for Constant {
-    fn from(a: AvlTreeFlags) -> Self {
-        Constant {
-            tpe: SType::SByte,
-            v: Literal::Byte(a.serialize() as i8),
         }
     }
 }
@@ -690,7 +630,6 @@ impl TryExtractFrom<Literal> for SigmaProp {
 impl TryExtractFrom<Literal> for Arc<ErgoBox> {
     fn try_extract_from(c: Literal) -> Result<Self, TryExtractFromError> {
         match c {
-            Literal::CBox(b) => Ok(b),
             _ => Err(TryExtractFromError(format!(
                 "expected ErgoBox, found {:?}",
                 c
@@ -702,7 +641,6 @@ impl TryExtractFrom<Literal> for Arc<ErgoBox> {
 impl TryExtractFrom<Literal> for ErgoBox {
     fn try_extract_from(c: Literal) -> Result<Self, TryExtractFromError> {
         match c {
-            Literal::CBox(b) => Ok((*b).clone()),
             _ => Err(TryExtractFromError(format!(
                 "expected ErgoBox, found {:?}",
                 c
@@ -796,19 +734,6 @@ impl TryExtractFrom<Literal> for BigInt256 {
     }
 }
 
-impl TryExtractFrom<Literal> for AvlTreeData {
-    fn try_extract_from(v: Literal) -> Result<Self, TryExtractFromError> {
-        match v {
-            Literal::AvlTree(a) => Ok(*a),
-            _ => Err(TryExtractFromError(format!(
-                "expected {:?}, found {:?}",
-                std::any::type_name::<Self>(),
-                v
-            ))),
-        }
-    }
-}
-
 impl<T: TryExtractFrom<Literal>> TryExtractFrom<Literal> for Option<T> {
     fn try_extract_from(v: Literal) -> Result<Self, TryExtractFromError> {
         match v {
@@ -892,7 +817,6 @@ impl TryFrom<Base16DecodedBytes> for Constant {
 #[allow(clippy::todo)]
 /// Arbitrary impl
 pub(crate) mod arbitrary {
-    use std::convert::TryFrom;
 
     use super::*;
     use crate::mir::value::CollKind;
@@ -954,8 +878,6 @@ pub(crate) mod arbitrary {
             SType::SBigInt => any::<i64>().prop_map(|v| BigInt256::from(v).into()).boxed(),
             SType::SGroupElement => any::<EcPoint>().prop_map_into().boxed(),
             SType::SSigmaProp => any::<SigmaProp>().prop_map_into().boxed(),
-            SType::SBox => any::<ErgoBox>().prop_map_into().boxed(),
-            SType::SAvlTree => any::<AvlTreeData>().prop_map_into().boxed(),
             // SType::SOption(tpe) =>
             SType::SOption(tpe) => match *tpe {
                 SType::SBoolean => any::<Option<bool>>().prop_map_into().boxed(),

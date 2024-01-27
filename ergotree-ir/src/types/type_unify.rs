@@ -133,10 +133,6 @@ mod tests {
         check_subst_map(t1, t2, [subst].iter().cloned().collect())
     }
 
-    fn check_subst_many(t1: SType, t2: SType, subst: &[(STypeVar, SType)]) {
-        check_subst_map(t1, t2, subst.iter().cloned().collect())
-    }
-
     #[test]
     fn unify_empty_subst() {
         check_empty_subst(SInt, SInt);
@@ -154,11 +150,6 @@ mod tests {
         );
 
         check_empty_subst(SOption(SInt.into()), SOption(SInt.into()));
-
-        check_empty_subst(
-            SFunc::new(vec![SBox], SLong).into(),
-            SFunc::new(vec![SBox], SLong).into(),
-        );
 
         check_empty_subst(STypeVar::t().into(), STypeVar::t().into());
         check_empty_subst(
@@ -237,40 +228,6 @@ mod tests {
             SFunc::new(vec![SInt], SBoolean).into(),
             (STypeVar::t(), SBoolean),
         );
-        check_subst_many(
-            SFunc::new(
-                vec![STuple::pair(SInt, STypeVar::iv().into()).into()],
-                STypeVar::t().into(),
-            )
-            .into(),
-            SFunc::new(vec![STuple::pair(SInt, SBoolean).into()], SBox).into(),
-            &[(STypeVar::t(), SBox), (STypeVar::iv(), SBoolean)],
-        );
-        check_subst(
-            SFunc::new(
-                vec![STuple::pair(SInt, STypeVar::t().into()).into()],
-                STypeVar::t().into(),
-            )
-            .into(),
-            SFunc::new(vec![STuple::pair(SInt, SBox).into()], SBox).into(),
-            (STypeVar::t(), SBox),
-        );
-        check_subst_many(
-            SFunc::new(
-                vec![
-                    SColl(STypeVar(STypeVar::iv()).into()),
-                    SFunc::new(vec![STypeVar::iv().into()], STypeVar::ov().into()).into(),
-                ],
-                SColl(STypeVar(STypeVar::ov()).into()),
-            )
-            .into(),
-            SFunc::new(
-                vec![SColl(SBox.into()), SFunc::new(vec![SBox], SLong).into()],
-                SColl(SLong.into()),
-            )
-            .into(),
-            &[(STypeVar::iv(), SBox), (STypeVar::ov(), SLong)],
-        )
     }
 
     #[test]
@@ -302,24 +259,12 @@ mod tests {
 
         // SFunc
         check_error(
-            SFunc::new(vec![SBox], SLong).into(),
-            SFunc::new(vec![SBox], SInt).into(),
-        );
-        check_error(
             SFunc::new(vec![STypeVar::t().into()], SInt).into(),
             SFunc::new(vec![SInt], SBoolean).into(),
         );
         check_error(
             SFunc::new(vec![SInt], STypeVar::t().into()).into(),
             SFunc::new(vec![SBoolean], SInt).into(),
-        );
-        check_error(
-            SFunc::new(
-                vec![STuple::pair(SInt, STypeVar::t().into()).into()],
-                STypeVar::t().into(),
-            )
-            .into(),
-            SFunc::new(vec![STuple::pair(SInt, SBoolean).into()], SBox).into(),
         );
 
         check_error(SSigmaProp, SBoolean);

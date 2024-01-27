@@ -92,13 +92,6 @@ impl SMethodDesc {
             },
         }
     }
-    pub(crate) fn as_method(&self, obj_type: STypeCompanion) -> SMethod {
-        SMethod {
-            obj_type,
-            method_raw: self.clone(),
-        }
-    }
-
     pub(crate) fn with_tpe(self, tpe: SFunc) -> Self {
         Self { tpe, ..self }
     }

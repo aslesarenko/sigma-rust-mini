@@ -15,7 +15,6 @@ use crate::types::stype::LiftIntoSType;
 use crate::types::stype::SType;
 use ergo_chain_types::EcPoint;
 
-use super::avl_tree_data::AvlTreeData;
 use super::constant::Literal;
 use super::constant::TryExtractFrom;
 use super::constant::TryExtractFromError;
@@ -143,10 +142,6 @@ pub enum Value {
     GroupElement(Box<EcPoint>),
     /// Sigma property
     SigmaProp(Box<SigmaProp>),
-    /// Ergo box
-    CBox(Arc<ErgoBox>),
-    /// AVL tree
-    AvlTree(Box<AvlTreeData>),
     /// Collection of values of the same type
     Coll(CollKind<Value>),
     /// Tuple (arbitrary type values)
@@ -204,7 +199,6 @@ impl From<Literal> for Value {
             Literal::Unit => Value::Unit,
             Literal::SigmaProp(s) => Value::SigmaProp(s),
             Literal::GroupElement(e) => Value::GroupElement(e),
-            Literal::CBox(b) => Value::CBox(b),
             Literal::Coll(coll) => {
                 let converted_coll = match coll {
                     CollKind::NativeColl(n) => CollKind::NativeColl(n),
@@ -215,7 +209,6 @@ impl From<Literal> for Value {
                 };
                 Value::Coll(converted_coll)
             }
-            Literal::AvlTree(a) => Value::AvlTree(a),
             Literal::Opt(lit) => Value::Opt(Box::new(lit.into_iter().next().map(Value::from))),
             Literal::Tup(t) => Value::Tup(t.mapped(Value::from)),
         }
@@ -273,8 +266,6 @@ impl std::fmt::Display for Value {
             Value::BigInt(v) => v.fmt(f),
             Value::SigmaProp(v) => v.fmt(f),
             Value::GroupElement(v) => v.fmt(f),
-            Value::AvlTree(v) => write!(f, "AvlTree({:?})", v),
-            Value::CBox(v) => write!(f, "ErgoBox({:?})", v),
         }
     }
 }
@@ -314,15 +305,6 @@ impl Into<Value> for Tuple {
     fn into(self) -> Value {
         let v: Vec<Value> = [for_tuples!(  #( Tuple.into() ),* )].to_vec();
         Value::Tup(v.try_into().unwrap())
-    }
-}
-
-impl From<Vec<Arc<ErgoBox>>> for Value {
-    fn from(v: Vec<Arc<ErgoBox>>) -> Self {
-        Value::Coll(CollKind::WrappedColl {
-            elem_tpe: SType::SBox,
-            items: v.into_iter().map(|i| i.into()).collect(),
-        })
     }
 }
 
@@ -401,7 +383,6 @@ impl TryExtractFrom<Value> for SigmaProp {
 impl TryExtractFrom<Value> for Arc<ErgoBox> {
     fn try_extract_from(c: Value) -> Result<Self, TryExtractFromError> {
         match c {
-            Value::CBox(b) => Ok(b),
             _ => Err(TryExtractFromError(format!(
                 "expected ErgoBox, found {:?}",
                 c
@@ -500,19 +481,6 @@ impl TryExtractFrom<Value> for BigInt256 {
     fn try_extract_from(v: Value) -> Result<Self, TryExtractFromError> {
         match v {
             Value::BigInt(bi) => Ok(bi),
-            _ => Err(TryExtractFromError(format!(
-                "expected {:?}, found {:?}",
-                std::any::type_name::<Self>(),
-                v
-            ))),
-        }
-    }
-}
-
-impl TryExtractFrom<Value> for AvlTreeData {
-    fn try_extract_from(v: Value) -> Result<Self, TryExtractFromError> {
-        match v {
-            Value::AvlTree(a) => Ok(*a),
             _ => Err(TryExtractFromError(format!(
                 "expected {:?}, found {:?}",
                 std::any::type_name::<Self>(),

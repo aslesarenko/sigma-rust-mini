@@ -7,7 +7,6 @@ use std::fmt::Debug;
 use impl_trait_for_tuples::impl_for_tuples;
 
 use crate::bigint256::BigInt256;
-use crate::chain::ergo_box::ErgoBox;
 use crate::sigma_protocol::sigma_boolean::SigmaBoolean;
 use crate::sigma_protocol::sigma_boolean::SigmaProofOfKnowledgeTree;
 use crate::sigma_protocol::sigma_boolean::SigmaProp;
@@ -17,7 +16,6 @@ use ergo_chain_types::EcPoint;
 use super::sfunc::SFunc;
 use super::stuple::STuple;
 use super::stype_param::STypeVar;
-use crate::mir::avl_tree_data::AvlTreeData;
 
 /// Every type descriptor is a tree represented by nodes in SType hierarchy.
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -44,10 +42,6 @@ pub enum SType {
     SGroupElement,
     /// Proposition which can be proven and verified by sigma protocol.
     SSigmaProp,
-    /// ErgoBox value
-    SBox,
-    /// AVL tree value
-    SAvlTree,
     /// Optional value
     SOption(Box<SType>),
     /// Collection of elements of the same type
@@ -87,8 +81,6 @@ impl SType {
                 | SType::SAny
                 | SType::SGroupElement
                 | SType::SSigmaProp
-                | SType::SBox
-                | SType::SAvlTree
                 | SType::SContext
                 | SType::SBoolean
                 | SType::SHeader
@@ -141,8 +133,6 @@ impl std::fmt::Display for SType {
             SType::SBigInt => write!(f, "BigInt"),
             SType::SGroupElement => write!(f, "GroupElement"),
             SType::SSigmaProp => write!(f, "SigmaProp"),
-            SType::SBox => write!(f, "Box"),
-            SType::SAvlTree => write!(f, "AvlTree"),
             SType::SOption(t) => write!(f, "Option[{}]", t),
             SType::SColl(t) => write!(f, "Coll[{}]", t),
             SType::STuple(t) => write!(f, "{}", t),
@@ -203,12 +193,6 @@ impl LiftIntoSType for i64 {
     }
 }
 
-impl LiftIntoSType for ErgoBox {
-    fn stype() -> SType {
-        SType::SBox
-    }
-}
-
 impl LiftIntoSType for SigmaBoolean {
     fn stype() -> SType {
         SType::SSigmaProp
@@ -251,12 +235,6 @@ impl LiftIntoSType for ProveDhTuple {
     }
 }
 
-impl LiftIntoSType for AvlTreeData {
-    fn stype() -> SType {
-        SType::SAvlTree
-    }
-}
-
 impl<T: LiftIntoSType> LiftIntoSType for Option<T> {
     fn stype() -> SType {
         SType::SOption(Box::new(T::stype()))
@@ -289,8 +267,6 @@ pub(crate) mod tests {
             Just(SType::SBigInt),
             Just(SType::SGroupElement),
             Just(SType::SSigmaProp),
-            Just(SType::SBox),
-            Just(SType::SAvlTree),
             Just(SType::SContext),
             Just(SType::SHeader),
             Just(SType::SPreHeader),
