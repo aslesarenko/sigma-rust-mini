@@ -101,11 +101,10 @@ impl ErgoTransaction for Transaction {
 
 /// `self_index` - index of the SELF box in the tx_ctx.spending_tx.inputs
 pub fn make_context<T: ErgoTransaction>(
-    state_ctx: &ErgoStateContext,
+    _state_ctx: &ErgoStateContext,
     tx_ctx: &TransactionContext<T>,
     self_index: usize,
 ) -> Result<Context, TransactionContextError> {
-    let height = state_ctx.pre_header.height;
 
     // Find self_box by matching BoxIDs
     let self_box = tx_ctx
@@ -150,14 +149,11 @@ pub fn make_context<T: ErgoTransaction>(
         .context_extension(self_index)
         .ok_or(TransactionError::InputNofFound(self_index))?;
     Ok(Context {
-        height,
         self_box: self_box_ir,
         outputs: outputs_ir,
         data_inputs: data_inputs_ir,
         inputs: inputs_ir,
-        pre_header: state_ctx.pre_header.clone(),
         extension,
-        headers: state_ctx.headers.clone(),
     })
 }
 

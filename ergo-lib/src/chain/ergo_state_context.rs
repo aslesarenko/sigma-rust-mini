@@ -1,5 +1,5 @@
 //! Blockchain state
-use ergo_chain_types::{Header, PreHeader};
+use ergo_chain_types::Header;
 
 /// Fixed number of last block headers in descending order (first header is the newest one)
 pub type Headers = [Header; 10];
@@ -7,20 +7,12 @@ pub type Headers = [Header; 10];
 /// Blockchain state (last headers, etc.)
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct ErgoStateContext {
-    /// Block header with the current `spendingTransaction`, that can be predicted
-    /// by a miner before it's formation
-    pub pre_header: PreHeader,
-    /// Fixed number of last block headers in descending order (first header is the newest one)
-    pub headers: Headers,
 }
 
 impl ErgoStateContext {
     /// Create an ErgoStateContext instance
-    pub fn new(pre_header: PreHeader, headers: Headers) -> ErgoStateContext {
-        ErgoStateContext {
-            pre_header,
-            headers,
-        }
+    pub fn new() -> ErgoStateContext {
+        ErgoStateContext { }
     }
 }
 
@@ -34,8 +26,8 @@ mod arbitrary {
         type Strategy = BoxedStrategy<Self>;
 
         fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
-            (any::<PreHeader>(), any::<Headers>())
-                .prop_map(|(pre_header, headers)| Self::new(pre_header, headers))
+            (any::<()>())
+                .prop_map(|_| Self::new())
                 .boxed()
         }
     }
