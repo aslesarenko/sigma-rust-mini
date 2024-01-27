@@ -26,15 +26,6 @@ impl Contract {
         self.ergo_tree.clone()
     }
 
-    /// Compiles a contract from ErgoScript source code
-    #[cfg(feature = "compiler")]
-    pub fn compile(
-        source: &str,
-        env: ergoscript_compiler::script_env::ScriptEnv,
-    ) -> Result<Contract, ergoscript_compiler::compiler::CompileError> {
-        let ergo_tree = ergoscript_compiler::compiler::compile(source, env)?;
-        Ok(Contract { ergo_tree })
-    }
 }
 
 #[cfg(test)]

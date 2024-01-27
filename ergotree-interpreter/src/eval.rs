@@ -124,7 +124,7 @@ impl EvalContext {
 /// Expression evaluation.
 /// Should be implemented by every node that can be evaluated.
 pub(crate) trait Evaluable {
-    /// Evaluation routine to be implement by each node
+    /// Evaluation routine to be implemented by each node
     fn eval(&self, ctx: &mut EvalContext) -> Result<Value, EvalError>;
 }
 

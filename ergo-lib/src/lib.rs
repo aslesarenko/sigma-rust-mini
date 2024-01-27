@@ -29,12 +29,6 @@ pub mod wallet;
 
 /// Ergo blockchain types
 pub extern crate ergo_chain_types;
-/// Re-exported types from dependencies
-#[cfg(feature = "rest")]
-pub extern crate ergo_rest;
-#[cfg(feature = "compiler")]
-/// ErgoScript compiler pipeline
-pub extern crate ergoscript_compiler;
 /// ErgoTree interpreter
 pub extern crate ergotree_interpreter;
 /// ErgoTree, MIR (Middle-level Internal Representation)
