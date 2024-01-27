@@ -11,6 +11,7 @@
 #![deny(missing_docs)]
 // Clippy exclusions
 #![allow(clippy::unit_arg)]
+#![allow(clippy::get_first)]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(clippy::wildcard_enum_match_arm)]
 #![deny(clippy::unwrap_used)]

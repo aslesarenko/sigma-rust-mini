@@ -450,7 +450,7 @@ mod tests {
         let token_name = "USD".to_string();
         let token_desc = "Nothing backed USD token".to_string();
         let token_num_dec = 2;
-        vec![R4, R5, R6].iter().for_each(|r_id| {
+        [R4, R5, R6].iter().for_each(|r_id| {
             let mut box_builder =
                 ErgoBoxCandidateBuilder::new(out_box_value, force_any_val::<ErgoTree>(), 0);
             box_builder.mint_token(
