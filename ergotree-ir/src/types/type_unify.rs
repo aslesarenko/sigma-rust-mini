@@ -62,9 +62,6 @@ pub fn unify_one(t1: &SType, t2: &SType) -> Result<HashMap<STypeVar, SType>, Typ
             unify_many(tuple1.items.clone().into(), tuple2.items.clone().into())
         }
         (SOption(elem_type1), SOption(elem_type2)) => unify_one(elem_type1, elem_type2),
-        (SFunc(sfunc1), SFunc(sfunc2)) => {
-            unify_many(sfunc1.t_dom_plus_range(), sfunc2.t_dom_plus_range())
-        }
         (SAny, _) => unified_without_subst(),
         // it is necessary for implicit conversion in Coll(bool, prop, bool)
         (SBoolean, SSigmaProp) => unified_without_subst(),
@@ -81,7 +78,6 @@ pub fn unify_one(t1: &SType, t2: &SType) -> Result<HashMap<STypeVar, SType>, Typ
 mod tests {
     use super::super::stype::tests::primitive_type;
     use super::*;
-    use crate::types::sfunc::SFunc;
     use crate::types::stuple::STuple;
     use proptest::prelude::*;
 
@@ -140,16 +136,6 @@ mod tests {
         // Option
         check_error(SOption(SBoolean.into()), SOption(SInt.into()));
         check_error(SOption(SBoolean.into()), SColl(SInt.into()));
-
-        // SFunc
-        check_error(
-            SFunc::new(vec![STypeVar::t().into()], SInt).into(),
-            SFunc::new(vec![SInt], SBoolean).into(),
-        );
-        check_error(
-            SFunc::new(vec![SInt], STypeVar::t().into()).into(),
-            SFunc::new(vec![SBoolean], SInt).into(),
-        );
 
         check_error(SSigmaProp, SBoolean);
     }

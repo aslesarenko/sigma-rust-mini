@@ -149,7 +149,6 @@ impl DataSerializer {
             STypeVar(_) => return Err(SigmaParsingError::NotSupported("TypeVar data")),
             SAny => return Err(SigmaParsingError::NotSupported("SAny data")),
             SOption(_) => return Err(SigmaParsingError::NotSupported("SOption data")),
-            SFunc(_) => return Err(SigmaParsingError::NotSupported("SFunc data")),
             SContext => return Err(SigmaParsingError::NotSupported("SContext data")),
             SHeader => return Err(SigmaParsingError::NotSupported("SHeader data")),
             SPreHeader => return Err(SigmaParsingError::NotSupported("SPreHeader data")),

@@ -36,32 +36,6 @@ impl Expr {
         }
     }
 
-    /// Type expected after the evaluation
-    pub fn post_eval_tpe(&self) -> SType {
-        match self.tpe() {
-            SType::SFunc(sfunc) => *sfunc.t_range,
-            tpe => tpe,
-        }
-    }
-
-    /// Check if given expected_tpe type is the same as the expression's post-evaluation type
-    pub fn check_post_eval_tpe(
-        &self,
-        expected_tpe: &SType,
-    ) -> Result<(), InvalidExprEvalTypeError> {
-        let expr_tpe = self.post_eval_tpe();
-        if &expr_tpe == expected_tpe {
-            Ok(())
-        } else {
-            use std::backtrace::Backtrace;
-            let backtrace = Backtrace::capture();
-            Err(InvalidExprEvalTypeError(format!(
-                "expected: {0:?}, got: {1:?}\nBacktrace:\n{backtrace}",
-                expected_tpe, expr_tpe
-            )))
-        }
-    }
-
     /// Prints the tree with newlines
     pub fn debug_tree(&self) -> String {
         let tree = format!("{:#?}", self);

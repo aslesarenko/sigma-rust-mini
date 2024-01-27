@@ -12,7 +12,6 @@ use crate::sigma_protocol::sigma_boolean::SigmaProp;
 use crate::sigma_protocol::sigma_boolean::{ProveDhTuple, ProveDlog};
 use ergo_chain_types::EcPoint;
 
-use super::sfunc::SFunc;
 use super::stuple::STuple;
 use super::stype_param::STypeVar;
 
@@ -47,8 +46,6 @@ pub enum SType {
     SColl(Box<SType>),
     /// Tuple (elements can have different types)
     STuple(STuple),
-    /// Function (signature)
-    SFunc(SFunc),
     /// Context object ("CONTEXT" in ErgoScript)
     SContext,
     /// Header of a block
@@ -101,12 +98,6 @@ impl From<STypeVar> for SType {
     }
 }
 
-impl From<SFunc> for SType {
-    fn from(v: SFunc) -> Self {
-        SType::SFunc(v)
-    }
-}
-
 impl std::fmt::Display for SType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -124,7 +115,6 @@ impl std::fmt::Display for SType {
             SType::SOption(t) => write!(f, "Option[{}]", t),
             SType::SColl(t) => write!(f, "Coll[{}]", t),
             SType::STuple(t) => write!(f, "{}", t),
-            SType::SFunc(t) => write!(f, "{}", t),
             SType::SContext => write!(f, "Context"),
             SType::SHeader => write!(f, "Header"),
             SType::SPreHeader => write!(f, "PreHeader"),
