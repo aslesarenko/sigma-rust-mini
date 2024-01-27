@@ -25,7 +25,6 @@ pub mod ec_point;
 mod extensioncandidate;
 mod header;
 mod json;
-mod peer_connection_dir;
 mod preheader;
 mod votes;
 
@@ -40,6 +39,5 @@ pub use digest32::DigestNError;
 pub use ec_point::EcPoint;
 pub use extensioncandidate::ExtensionCandidate;
 pub use header::{AutolykosSolution, Header};
-pub use peer_connection_dir::ConnectionDirection;
 pub use preheader::PreHeader;
 pub use votes::Votes;
