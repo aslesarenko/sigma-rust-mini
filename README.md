@@ -70,7 +70,7 @@ The following bindings form sigma-rust was removed. If you need them then use th
 
 See [CHANGELOG.md](ergo-lib/CHANGELOG.md).
 
-## Usage Examples
+## 
 
 Since all bindings were removed, most of the original examples are not relevant, except pure Rust examples listed below.
 
