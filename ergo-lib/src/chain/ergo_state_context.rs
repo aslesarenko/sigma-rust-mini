@@ -1,11 +1,7 @@
 //! Blockchain state
-use ergo_chain_types::Header;
-
-/// Fixed number of last block headers in descending order (first header is the newest one)
-pub type Headers = [Header; 10];
 
 /// Blockchain state (last headers, etc.)
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Default)]
 pub struct ErgoStateContext {
 }
 

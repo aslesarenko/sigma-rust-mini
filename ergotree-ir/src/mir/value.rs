@@ -13,7 +13,7 @@ use crate::sigma_protocol::sigma_boolean::SigmaProp;
 use crate::types::stuple::TupleItems;
 use crate::types::stype::LiftIntoSType;
 use crate::types::stype::SType;
-use ergo_chain_types::{EcPoint, Header, PreHeader};
+use ergo_chain_types::EcPoint;
 
 use super::avl_tree_data::AvlTreeData;
 use super::constant::Literal;
@@ -151,14 +151,6 @@ pub enum Value {
     Coll(CollKind<Value>),
     /// Tuple (arbitrary type values)
     Tup(TupleItems<Value>),
-    /// Transaction(and blockchain) context info
-    Context,
-    /// Block header
-    Header(Box<Header>),
-    /// Header with predictable data
-    PreHeader(Box<PreHeader>),
-    /// Global which is used to define global methods
-    Global,
     /// Optional value
     Opt(Box<Option<Value>>),
 }
@@ -283,10 +275,6 @@ impl std::fmt::Display for Value {
             Value::GroupElement(v) => v.fmt(f),
             Value::AvlTree(v) => write!(f, "AvlTree({:?})", v),
             Value::CBox(v) => write!(f, "ErgoBox({:?})", v),
-            Value::Context => write!(f, "CONTEXT"),
-            Value::Header(_) => write!(f, "HEADER"),
-            Value::PreHeader(_) => write!(f, "PREHEADER"),
-            Value::Global => write!(f, "GLOBAL"),
         }
     }
 }
@@ -299,7 +287,6 @@ impl StoreWrapped for i16 {}
 impl StoreWrapped for i32 {}
 impl StoreWrapped for i64 {}
 impl StoreWrapped for BigInt256 {}
-impl StoreWrapped for Header {}
 impl StoreWrapped for Arc<ErgoBox> {}
 impl StoreWrapped for EcPoint {}
 impl StoreWrapped for SigmaProp {}
@@ -417,30 +404,6 @@ impl TryExtractFrom<Value> for Arc<ErgoBox> {
             Value::CBox(b) => Ok(b),
             _ => Err(TryExtractFromError(format!(
                 "expected ErgoBox, found {:?}",
-                c
-            ))),
-        }
-    }
-}
-
-impl TryExtractFrom<Value> for Header {
-    fn try_extract_from(c: Value) -> Result<Self, TryExtractFromError> {
-        match c {
-            Value::Header(h) => Ok(*h),
-            _ => Err(TryExtractFromError(format!(
-                "expected Header, found {:?}",
-                c
-            ))),
-        }
-    }
-}
-
-impl TryExtractFrom<Value> for PreHeader {
-    fn try_extract_from(c: Value) -> Result<Self, TryExtractFromError> {
-        match c {
-            Value::PreHeader(ph) => Ok(*ph),
-            _ => Err(TryExtractFromError(format!(
-                "expected PreHeader, found {:?}",
                 c
             ))),
         }
