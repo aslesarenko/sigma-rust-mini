@@ -32,7 +32,6 @@ pub static GROUP_ELEMENT_TYPE_NAME: &str = "GroupElement";
 pub static OPTION_TYPE_NAME: &str = "Option";
 
 impl STypeCompanion {
-
     /// Get object's type code
     pub fn type_code(&self) -> TypeCode {
         match self {

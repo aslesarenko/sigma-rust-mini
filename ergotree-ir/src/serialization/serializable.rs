@@ -9,7 +9,6 @@ use super::{
     sigma_byte_reader::{SigmaByteRead, SigmaByteReader},
     sigma_byte_writer::{SigmaByteWrite, SigmaByteWriter},
 };
-use crate::types::smethod::MethodId;
 use bounded_vec::BoundedVec;
 use bounded_vec::BoundedVecOutOfBounds;
 use io::Cursor;
@@ -80,9 +79,6 @@ pub enum SigmaParsingError {
     /// Invalid argument on node creation
     #[error("Invalid argument: {0:?}")]
     InvalidArgument(#[from] InvalidArgumentError),
-    /// Unknown method ID for given type code
-    #[error("No method id {0:?} found in type companion with type id {1:?} ")]
-    UnknownMethodId(MethodId, u8),
     /// Feature not supported
     #[error("parsing not supported: {0}")]
     NotSupported(&'static str),

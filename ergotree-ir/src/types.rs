@@ -6,7 +6,6 @@ pub mod stype;
 pub mod sfunc;
 /// GroupElement methods
 /// Object method(property) signature type
-pub mod smethod;
 /// Option object type companion
 /// Tuple type
 pub mod stuple;

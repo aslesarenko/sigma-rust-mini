@@ -1,6 +1,5 @@
 //! SType hierarchy
 
-use std::collections::HashMap;
 use std::convert::TryInto;
 use std::fmt::Debug;
 
@@ -87,17 +86,6 @@ impl SType {
                 | SType::SPreHeader
                 | SType::SGlobal
         )
-    }
-
-    pub(crate) fn with_subst(self, subst: &HashMap<STypeVar, SType>) -> Self {
-        match self {
-            SType::STypeVar(ref tpe_var) => subst.get(tpe_var).cloned().unwrap_or(self),
-            SType::SOption(tpe) => SType::SOption(tpe.with_subst(subst).into()),
-            SType::SColl(tpe) => SType::SColl(tpe.with_subst(subst).into()),
-            SType::STuple(stup) => SType::STuple(stup.with_subst(subst)),
-            SType::SFunc(sfunc) => SType::SFunc(sfunc.with_subst(subst)),
-            _ => self,
-        }
     }
 }
 
