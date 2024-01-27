@@ -2,7 +2,7 @@
 
 use crate::base16_str::Base16Str;
 use crate::bigint256::BigInt256;
-use crate::chain::ergo_box::ErgoBox;
+// use crate::chain::ergo_box::ErgoBox;
 use crate::chain::token::TokenId;
 use crate::mir::value::CollKind;
 use crate::serialization::SigmaParsingError;
@@ -26,7 +26,6 @@ use sigma_util::AsVecU8;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::fmt::Formatter;
-use std::sync::Arc;
 
 mod constant_placeholder;
 
@@ -622,28 +621,6 @@ impl TryExtractFrom<Literal> for SigmaProp {
             _ => Err(TryExtractFromError(format!(
                 "expected SigmaProp, found {:?}",
                 cv
-            ))),
-        }
-    }
-}
-
-impl TryExtractFrom<Literal> for Arc<ErgoBox> {
-    fn try_extract_from(c: Literal) -> Result<Self, TryExtractFromError> {
-        match c {
-            _ => Err(TryExtractFromError(format!(
-                "expected ErgoBox, found {:?}",
-                c
-            ))),
-        }
-    }
-}
-
-impl TryExtractFrom<Literal> for ErgoBox {
-    fn try_extract_from(c: Literal) -> Result<Self, TryExtractFromError> {
-        match c {
-            _ => Err(TryExtractFromError(format!(
-                "expected ErgoBox, found {:?}",
-                c
             ))),
         }
     }

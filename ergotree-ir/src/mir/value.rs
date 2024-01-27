@@ -380,17 +380,6 @@ impl TryExtractFrom<Value> for SigmaProp {
     }
 }
 
-impl TryExtractFrom<Value> for Arc<ErgoBox> {
-    fn try_extract_from(c: Value) -> Result<Self, TryExtractFromError> {
-        match c {
-            _ => Err(TryExtractFromError(format!(
-                "expected ErgoBox, found {:?}",
-                c
-            ))),
-        }
-    }
-}
-
 impl<T: TryExtractFrom<Value> + StoreWrapped> TryExtractFrom<Value> for Vec<T> {
     fn try_extract_from(c: Value) -> Result<Self, TryExtractFromError> {
         match c {
@@ -495,18 +484,6 @@ impl<T: TryExtractFrom<Value> + StoreWrapped> TryExtractFrom<Vec<Value>> for Vec
         v.into_iter().map(|it| it.try_extract_into::<T>()).collect()
     }
 }
-
-// impl TryExtractFrom<Value> for Rc<Context> {
-//     fn try_extract_from(v: Value) -> Result<Self, TryExtractFromError> {
-//         match v {
-//             Value::Context(ctx) => Ok(ctx),
-//             _ => Err(TryExtractFromError(format!(
-//                 "expected Context, found {:?}",
-//                 v
-//             ))),
-//         }
-//     }
-// }
 
 impl<T: TryExtractFrom<Value>> TryExtractFrom<Value> for Option<T> {
     fn try_extract_from(v: Value) -> Result<Self, TryExtractFromError> {

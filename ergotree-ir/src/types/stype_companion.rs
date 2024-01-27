@@ -25,7 +25,6 @@ pub enum STypeCompanion {
 }
 
 impl STypeCompanion {
-
     /// Get object's type code
     pub fn type_code(&self) -> TypeCode {
         match self {
