@@ -1,39 +1,69 @@
-[![Coverage Status](https://coveralls.io/repos/github/ergoplatform/sigma-rust/badge.svg)](https://coveralls.io/github/ergoplatform/sigma-rust)
+**This repository is the fork of [sigma-rust](https://github.com/ergoplatform/sigma-rust) created
+for lightweight wallets where most of the sigma-rust advanced features are not required.
+Unless you have such a specific case, you're better off using the original sigma-rust.**
 
-Rust implementation of [ErgoScript](https://github.com/ScorexFoundation/sigmastate-interpreter) cryptocurrency scripting language.
+The original codebase of sigma-rust is heavily _minimized_ to prune everything not related to
+signing simple transactions. However, the original design is preserved and as a result most of the
+original tests remained unchanged.
+
+Due to the highly focused nature, this library supposed to be stable, all new features can be done elsewhere.
+
+## Use Cases 
+
+### Lightweight Ergo Wallets
+
+You want to interact with [Ergo](https://ergoplatform.org/) blockchain and want to support only
+basic P2PK addresses, BIP-32 keys, and interact with dApps via ErgoPay. You don't want to compile
+smart contracts, interact with contracts directly and, therefor, you don't need the ErgoTree
+interpreter. And you also want a minimalistic non-opinionated library that is focused on keys
+management and transaction signing. You also have your own Android/iOS/JS/Whatever bindings or don't
+need them at all. You are also planning your way of interacting with Ergo nodes.
+
+### Third-party Ergo Integration and Security Audit 
+
+You want to integrate you library/ecosystem with Ergo blockchain and [need to avoid new dependencies](https://developer.trustwallet.com/developer/wallet-core/newblockchain#rust-implementation).
+This library is already minimized towards what you need so you can copy the code and even minimize it further. 
+It helps passing code audit.
+
+### Education
+
+You may be interested to learn blockchain development, Ergo, Rust or all of it. You
+can start from this library and then switch to full-blown [sigma-rust](https://github.com/ergoplatform/sigma-rust).
 
 See [Architecture](docs/architecture.md) for high-level overview.
 
 ## Crates
 
-[ergo-lib](https://github.com/ergoplatform/sigma-rust/tree/develop/ergo-lib) [![Latest Version](https://img.shields.io/crates/v/ergo-lib.svg)](https://crates.io/crates/ergo-lib) [![Documentation](https://docs.rs/ergo-lib/badge.svg)](https://docs.rs/crate/ergo-lib)
+[ergo-lib](ergo-lib) 
 
-Overarching crate exposing wallet-related features: chain types (transactions, boxes, etc.), JSON serialization, box selection for tx inputs, tx builder and signing. Exports other crates API, probably the only crate you'd need to import.
+Overarching crate exposing wallet-related features: chain types (transactions, boxes, etc.), JSON serialization, simple box
+selection for tx inputs, tx builder and signing. Exports other crates API, probably the only crate you'd need to import.
 
-[ergotree-interpreter](https://github.com/ergoplatform/sigma-rust/tree/develop/ergotree-interpreter) [![Latest Version](https://img.shields.io/crates/v/ergotree-interpreter.svg)](https://crates.io/crates/ergotree-interpreter) [![Documentation](https://docs.rs/ergotree-interpreter/badge.svg)](https://docs.rs/crate/ergotree-interpreter)
+[ergotree-interpreter](ergotree-interpreter) 
 
-ErgoTree interpreter
+Heavily pruned ErgoTree interpreter. The original sigma-rust design is preserved, all ErgoTree
+operations were removed along with evaluation and related code.
 
-[ergotree-ir](https://github.com/ergoplatform/sigma-rust/tree/develop/ergotree-ir) [![Latest Version](https://img.shields.io/crates/v/ergotree-ir.svg)](https://crates.io/crates/ergotree-ir) [![Documentation](https://docs.rs/ergotree-ir/badge.svg)](https://docs.rs/crate/ergotree-ir)
+[ergotree-ir](ergotree-ir)
 
-ErgoTree IR and serialization.
+Heavily pruned ErgoTree IR. The original sigma-rust design is preserved, but most of the nodes and related serializers and code were pruned.
 
-[ergoscript-compiler](https://github.com/ergoplatform/sigma-rust/tree/develop/ergoscript-compiler) [![Latest Version](https://img.shields.io/crates/v/ergoscript-compiler.svg)](https://crates.io/crates/ergoscript-compiler) [![Documentation](https://docs.rs/ergoscript-compiler/badge.svg)](https://docs.rs/crate/ergoscript-compiler)
+[ergoscript-compiler](https://github.com/ergoplatform/sigma-rust/tree/develop/ergoscript-compiler) 
 
-ErgoScript compiler.
+ErgoScript compiler was completely removed
 
-[sigma-ser](https://github.com/ergoplatform/sigma-rust/tree/develop/sigma-ser) [![Latest Version](https://img.shields.io/crates/v/sigma-ser.svg)](https://crates.io/crates/sigma-ser) [![Documentation](https://docs.rs/sigma-ser/badge.svg)](https://docs.rs/crate/sigma-ser)
+[sigma-ser](sigma-ser)
 
-Ergo binary serialization primitives.
+Ergo binary serialization primitives. Remained mostly unchanged.
 
-Bindings:
-
-- [ergo-lib-wasm(Wasm)](https://github.com/ergoplatform/sigma-rust/tree/develop/bindings/ergo-lib-wasm) [![Latest Version](https://img.shields.io/crates/v/ergo-lib-wasm.svg)](https://crates.io/crates/ergo-lib-wasm) [![Documentation](https://docs.rs/ergo-lib-wasm/badge.svg)](https://docs.rs/crate/ergo-lib-wasm) 
-- [ergo-lib-wasm-browser(JS/TS)](https://github.com/ergoplatform/sigma-rust/tree/develop/bindings/ergo-lib-wasm) [![Latest version](https://img.shields.io/npm/v/ergo-lib-wasm-browser)](https://www.npmjs.com/package/ergo-lib-wasm-browser)
-- [ergo-lib-wasm-nodejs(JS/TS)](https://github.com/ergoplatform/sigma-rust/tree/develop/bindings/ergo-lib-wasm) [![Latest version](https://img.shields.io/npm/v/ergo-lib-wasm-nodejs)](https://www.npmjs.com/package/ergo-lib-wasm-nodejs)
+## Bindings
+The following bindings form sigma-rust was removed. If you need them then use the original sigma-rust.
+- [ergo-lib-wasm(Wasm)](https://github.com/ergoplatform/sigma-rust/tree/develop/bindings/ergo-lib-wasm) 
+- [ergo-lib-wasm-browser(JS/TS)](https://github.com/ergoplatform/sigma-rust/tree/develop/bindings/ergo-lib-wasm)
+- [ergo-lib-wasm-nodejs(JS/TS)](https://github.com/ergoplatform/sigma-rust/tree/develop/bindings/ergo-lib-wasm)
 - [ergo-lib-ios(Swift)](https://github.com/ergoplatform/sigma-rust/tree/develop/bindings/ergo-lib-ios)
-- [ergo-lib-jni(Java)](https://github.com/ergoplatform/sigma-rust/tree/develop/bindings/ergo-lib-jni) [![Latest Version](https://img.shields.io/crates/v/ergo-lib-jni.svg)](https://crates.io/crates/ergo-lib-jni) [![Documentation](https://docs.rs/ergo-lib-jni/badge.svg)](https://docs.rs/crate/ergo-lib-jni)
-- [ergo-lib-c (C)](https://github.com/ergoplatform/sigma-rust/tree/develop/bindings/ergo-lib-c) [![Latest Version](https://img.shields.io/crates/v/ergo-lib-c.svg)](https://crates.io/crates/ergo-lib-c) [![Documentation](https://docs.rs/ergo-lib-c/badge.svg)](https://docs.rs/crate/ergo-lib-c)
+- [ergo-lib-jni(Java)](https://github.com/ergoplatform/sigma-rust/tree/develop/bindings/ergo-lib-jni)
+- [ergo-lib-c (C)](https://github.com/ergoplatform/sigma-rust/tree/develop/bindings/ergo-lib-c)
 - [sigma_rb(Ruby)](https://github.com/thedlop/sigma_rb)[![Gem Version](https://badge.fury.io/rb/sigma_rb.svg)](https://badge.fury.io/rb/sigma_rb)
 
 ## Changelog
@@ -42,7 +72,7 @@ See [CHANGELOG.md](ergo-lib/CHANGELOG.md).
 
 ## Usage Examples
 
-To get better understanding on how to use it in your project check out how its being used in the following projects:
+Since all bindings were removed, most of the original examples are not relevant, except pure Rust examples listed below.
 
 Rust:
 
@@ -53,21 +83,13 @@ Rust:
 - [AgeUSD Stablecoin Protocol](https://github.com/Emurgo/age-usd);
 - [ErgoNames SDKs](https://github.com/ergonames/sdk/tree/master/rust)
 
-TS/JS:
-
-- [Ergo SDK](https://github.com/ergolabs/ergo-sdk-js) (Wasm bindings);
-- [Yoroi wallet](https://github.com/Emurgo/yoroi-frontend) (Wasm bindings);
-- [Ergo Desktop Wallet](https://github.com/ErgoWallet/ergowallet-desktop) (Wasm bindings);
-
-Examples:
-
-- [Create transaction demo](https://github.com/ergoplatform/sigma-rust/tree/develop/bindings/ergo-lib-wasm/examples/create-transaction-demo) (TS)
-- [Address generation demo](https://github.com/ergoplatform/sigma-rust/tree/develop/bindings/ergo-lib-wasm/examples/address-generation-demo) (TS)
 
 Also take a look at tests where various usage scenarios were implemented.
+
+And last but not the least, there is a whole section of [examples for the original sigma-rust library](https://github.com/ergoplatform/sigma-rust#usage-examples).
 
 ## Contributing
 
 See [Contributing](CONTRIBUTING.md) guide.
 
-Feel free to join the [Ergo Discord](https://discord.gg/kj7s7nb) and ask questions on `#sigma-rust` channel.
+Feel free to join the [Ergo Discord](https://discord.gg/kj7s7nb) and ask questions on `#dev-tooling` channel.
