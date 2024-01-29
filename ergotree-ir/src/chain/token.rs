@@ -201,17 +201,13 @@ pub mod arbitrary {
     use std::convert::TryFrom;
 
     /// How to generate a token id
+    #[derive(Default)]
     pub enum ArbTokenIdParam {
         /// From a list of predefined token ids
+        #[default]
         Predef,
         /// Arbitrary token id
         Arbitrary,
-    }
-
-    impl Default for ArbTokenIdParam {
-        fn default() -> Self {
-            ArbTokenIdParam::Predef
-        }
     }
 
     impl Arbitrary for TokenId {

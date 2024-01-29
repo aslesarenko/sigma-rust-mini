@@ -64,7 +64,7 @@ mod tests {
         assert!(s.get(0).is_some());
         assert_eq!(s.get(0).unwrap().clone(), c);
         assert!(!s.get_all().is_empty());
-        assert_eq!(s.get_all().get(0).unwrap().clone(), c);
+        assert_eq!(s.get_all().first().unwrap().clone(), c);
     }
 
     #[test]
@@ -78,6 +78,6 @@ mod tests {
         assert!(s.get(0).is_some());
         assert_eq!(s.get(0).unwrap().clone(), c);
         assert!(!s.get_all().is_empty());
-        assert_eq!(s.get_all().get(0).unwrap().clone(), c);
+        assert_eq!(s.get_all().first().unwrap().clone(), c);
     }
 }

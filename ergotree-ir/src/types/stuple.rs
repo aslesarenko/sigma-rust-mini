@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 
@@ -6,7 +5,6 @@ use bounded_vec::BoundedVec;
 use bounded_vec::BoundedVecOutOfBounds;
 
 use super::stype::SType;
-use super::stype_param::STypeVar;
 
 /// Tuple items with bounds check (2..=255)
 pub type TupleItems<T> = BoundedVec<T, 2, 255>;
@@ -68,12 +66,6 @@ impl STuple {
         #[allow(clippy::unwrap_used)]
         STuple {
             items: vec![t1, t2, t3, t4].try_into().unwrap(),
-        }
-    }
-
-    pub(crate) fn with_subst(self, subst: &HashMap<STypeVar, SType>) -> Self {
-        STuple {
-            items: self.items.mapped(|a| a.with_subst(subst)),
         }
     }
 }

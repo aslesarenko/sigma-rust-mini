@@ -118,7 +118,6 @@ impl SigmaSerializable for NonMandatoryRegisters {
         for (idx, reg_value) in self.0.iter().enumerate() {
             match reg_value {
                 RegisterValue::Parsed(c) => c.sigma_serialize(w)?,
-                RegisterValue::ParsedTupleExpr(t) => t.to_tuple_expr().sigma_serialize(w)?,
                 RegisterValue::Invalid { bytes, error_msg } => {
                     let bytes_str = base16::encode_lower(bytes);
                     return Err(SigmaSerializationError::NotSupported(format!("unparseable register value at {0:?} (parsing error: {error_msg}) cannot be serialized in the stream (writer), because it cannot be parsed later. Register value as base16-encoded bytes: {bytes_str}", NonMandatoryRegisterId::get_by_zero_index(idx))));
@@ -135,14 +134,6 @@ impl SigmaSerializable for NonMandatoryRegisters {
             let expr = Expr::sigma_parse(r)?;
             let reg_val = match expr {
                 Expr::Const(c) => RegisterValue::Parsed(c),
-                Expr::Tuple(t) => {
-                    RegisterValue::ParsedTupleExpr(EvaluatedTuple::new(t).map_err(|e| {
-                        RegisterValueError::UnexpectedRegisterValue(format!(
-                            "error parsing tuple expression from register {0:?}: {e}",
-                            RegisterId::try_from(idx)
-                        ))
-                    })?)
-                }
                 _ => {
                     return Err(RegisterValueError::UnexpectedRegisterValue(format!(
                         "invalid register ({0:?}) value: {expr:?} (expected Constant or Tuple)",

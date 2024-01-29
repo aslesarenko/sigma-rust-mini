@@ -1,7 +1,5 @@
 use sigma_util::AsVecU8;
 
-use crate::chain::ergo_box::ErgoBox;
-use crate::mir::avl_tree_data::AvlTreeData;
 use crate::mir::constant::Literal;
 use crate::mir::constant::TryExtractFromError;
 use crate::mir::constant::TryExtractInto;
@@ -19,7 +17,6 @@ use ergo_chain_types::EcPoint;
 
 use super::sigma_byte_writer::SigmaByteWrite;
 use std::convert::TryInto;
-use std::sync::Arc;
 
 /// Used to serialize and parse `Literal` and `Value`.
 pub struct DataSerializer {}
@@ -41,8 +38,6 @@ impl DataSerializer {
             }
             Literal::GroupElement(ecp) => ecp.sigma_serialize(w)?,
             Literal::SigmaProp(s) => s.value().sigma_serialize(w)?,
-            Literal::AvlTree(a) => a.sigma_serialize(w)?,
-            Literal::CBox(b) => b.sigma_serialize(w)?,
             Literal::Coll(ct) => match ct {
                 CollKind::NativeColl(NativeColl::CollByte(b)) => {
                     w.put_usize_as_u16_unwrapped(b.len())?;
@@ -151,16 +146,8 @@ impl DataSerializer {
                 // is correct
                 Literal::Tup(items.try_into()?)
             }
-            SBox => Literal::CBox(Arc::new(ErgoBox::sigma_parse(r)?)),
-            SAvlTree => Literal::AvlTree(Box::new(AvlTreeData::sigma_parse(r)?)),
-            STypeVar(_) => return Err(SigmaParsingError::NotSupported("TypeVar data")),
             SAny => return Err(SigmaParsingError::NotSupported("SAny data")),
             SOption(_) => return Err(SigmaParsingError::NotSupported("SOption data")),
-            SFunc(_) => return Err(SigmaParsingError::NotSupported("SFunc data")),
-            SContext => return Err(SigmaParsingError::NotSupported("SContext data")),
-            SHeader => return Err(SigmaParsingError::NotSupported("SHeader data")),
-            SPreHeader => return Err(SigmaParsingError::NotSupported("SPreHeader data")),
-            SGlobal => return Err(SigmaParsingError::NotSupported("SGlobal data")),
         })
     }
 }

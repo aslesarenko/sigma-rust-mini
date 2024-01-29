@@ -19,10 +19,6 @@ sigma-util = { workspace = true }
 ergo-chain-types = { workspace = true }
 ergotree-ir = { workspace = true }
 ergotree-interpreter = { workspace = true }
-ergo-nipopow = { workspace = true }
-ergoscript-compiler = { workspace = true, optional = true}
-ergo-merkle-tree = { workspace = true }
-ergo-rest = { workspace = true, optional = true}
 indexmap = { workspace = true }
 base16 = { workspace = true }
 serde = { workspace = true, optional = true }
@@ -46,18 +42,16 @@ itertools = { workspace = true }
 
 
 [features]
-default = ["json"]
+default = ["json", "arbitrary"]
 json = ["serde", "serde_json", "serde_with", "bounded-vec/serde"]
-compiler = ["ergoscript-compiler"]
 arbitrary = ["proptest", "proptest-derive", "ergotree-ir/arbitrary", "ergo-chain-types/arbitrary", "ergotree-interpreter/arbitrary"]
 mnemonic_gen = ["bitvec"]
-rest = ["ergo-rest"]
 
 [dev-dependencies]
+proptest = { workspace = true }
 wasm-bindgen-test = { workspace = true }
 ergotree-ir = { workspace = true, features = ["arbitrary"] }
 ergotree-interpreter = { workspace = true, features = ["arbitrary"] }
-ergo-merkle-tree = { workspace = true, features = ["arbitrary"] }
 sigma-test-util = { workspace = true }
 pretty_assertions = { workspace = true }
 bs58 = { workspace = true }

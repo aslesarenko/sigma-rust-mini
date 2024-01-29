@@ -13,15 +13,12 @@ use crate::sigma_protocol::sigma_boolean::SigmaProp;
 use crate::types::stuple::TupleItems;
 use crate::types::stype::LiftIntoSType;
 use crate::types::stype::SType;
-use ergo_chain_types::{EcPoint, Header, PreHeader};
+use ergo_chain_types::EcPoint;
 
-use super::avl_tree_data::AvlTreeData;
 use super::constant::Literal;
 use super::constant::TryExtractFrom;
 use super::constant::TryExtractFromError;
 use super::constant::TryExtractInto;
-use super::expr::Expr;
-use super::func_value::FuncArg;
 
 extern crate derive_more;
 use derive_more::From;
@@ -124,15 +121,6 @@ where
     }
 }
 
-/// Lambda
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub struct Lambda {
-    /// Argument placeholders
-    pub args: Vec<FuncArg>,
-    /// Body
-    pub body: Box<Expr>,
-}
-
 /// Runtime value
 #[derive(PartialEq, Eq, Debug, Clone, From)]
 pub enum Value {
@@ -154,26 +142,12 @@ pub enum Value {
     GroupElement(Box<EcPoint>),
     /// Sigma property
     SigmaProp(Box<SigmaProp>),
-    /// Ergo box
-    CBox(Arc<ErgoBox>),
-    /// AVL tree
-    AvlTree(Box<AvlTreeData>),
     /// Collection of values of the same type
     Coll(CollKind<Value>),
     /// Tuple (arbitrary type values)
     Tup(TupleItems<Value>),
-    /// Transaction(and blockchain) context info
-    Context,
-    /// Block header
-    Header(Box<Header>),
-    /// Header with predictable data
-    PreHeader(Box<PreHeader>),
-    /// Global which is used to define global methods
-    Global,
     /// Optional value
     Opt(Box<Option<Value>>),
-    /// lambda
-    Lambda(Lambda),
 }
 
 impl Value {
@@ -225,7 +199,6 @@ impl From<Literal> for Value {
             Literal::Unit => Value::Unit,
             Literal::SigmaProp(s) => Value::SigmaProp(s),
             Literal::GroupElement(e) => Value::GroupElement(e),
-            Literal::CBox(b) => Value::CBox(b),
             Literal::Coll(coll) => {
                 let converted_coll = match coll {
                     CollKind::NativeColl(n) => CollKind::NativeColl(n),
@@ -236,7 +209,6 @@ impl From<Literal> for Value {
                 };
                 Value::Coll(converted_coll)
             }
-            Literal::AvlTree(a) => Value::AvlTree(a),
             Literal::Opt(lit) => Value::Opt(Box::new(lit.into_iter().next().map(Value::from))),
             Literal::Tup(t) => Value::Tup(t.mapped(Value::from)),
         }
@@ -294,13 +266,6 @@ impl std::fmt::Display for Value {
             Value::BigInt(v) => v.fmt(f),
             Value::SigmaProp(v) => v.fmt(f),
             Value::GroupElement(v) => v.fmt(f),
-            Value::AvlTree(v) => write!(f, "AvlTree({:?})", v),
-            Value::CBox(v) => write!(f, "ErgoBox({:?})", v),
-            Value::Context => write!(f, "CONTEXT"),
-            Value::Header(_) => write!(f, "HEADER"),
-            Value::PreHeader(_) => write!(f, "PREHEADER"),
-            Value::Global => write!(f, "GLOBAL"),
-            Value::Lambda(v) => write!(f, "{v:?}"),
         }
     }
 }
@@ -313,7 +278,6 @@ impl StoreWrapped for i16 {}
 impl StoreWrapped for i32 {}
 impl StoreWrapped for i64 {}
 impl StoreWrapped for BigInt256 {}
-impl StoreWrapped for Header {}
 impl StoreWrapped for Arc<ErgoBox> {}
 impl StoreWrapped for EcPoint {}
 impl StoreWrapped for SigmaProp {}
@@ -341,15 +305,6 @@ impl Into<Value> for Tuple {
     fn into(self) -> Value {
         let v: Vec<Value> = [for_tuples!(  #( Tuple.into() ),* )].to_vec();
         Value::Tup(v.try_into().unwrap())
-    }
-}
-
-impl From<Vec<Arc<ErgoBox>>> for Value {
-    fn from(v: Vec<Arc<ErgoBox>>) -> Self {
-        Value::Coll(CollKind::WrappedColl {
-            elem_tpe: SType::SBox,
-            items: v.into_iter().map(|i| i.into()).collect(),
-        })
     }
 }
 
@@ -420,42 +375,6 @@ impl TryExtractFrom<Value> for SigmaProp {
             _ => Err(TryExtractFromError(format!(
                 "expected SigmaProp, found {:?}",
                 cv
-            ))),
-        }
-    }
-}
-
-impl TryExtractFrom<Value> for Arc<ErgoBox> {
-    fn try_extract_from(c: Value) -> Result<Self, TryExtractFromError> {
-        match c {
-            Value::CBox(b) => Ok(b),
-            _ => Err(TryExtractFromError(format!(
-                "expected ErgoBox, found {:?}",
-                c
-            ))),
-        }
-    }
-}
-
-impl TryExtractFrom<Value> for Header {
-    fn try_extract_from(c: Value) -> Result<Self, TryExtractFromError> {
-        match c {
-            Value::Header(h) => Ok(*h),
-            _ => Err(TryExtractFromError(format!(
-                "expected Header, found {:?}",
-                c
-            ))),
-        }
-    }
-}
-
-impl TryExtractFrom<Value> for PreHeader {
-    fn try_extract_from(c: Value) -> Result<Self, TryExtractFromError> {
-        match c {
-            Value::PreHeader(ph) => Ok(*ph),
-            _ => Err(TryExtractFromError(format!(
-                "expected PreHeader, found {:?}",
-                c
             ))),
         }
     }
@@ -560,36 +479,11 @@ impl TryExtractFrom<Value> for BigInt256 {
     }
 }
 
-impl TryExtractFrom<Value> for AvlTreeData {
-    fn try_extract_from(v: Value) -> Result<Self, TryExtractFromError> {
-        match v {
-            Value::AvlTree(a) => Ok(*a),
-            _ => Err(TryExtractFromError(format!(
-                "expected {:?}, found {:?}",
-                std::any::type_name::<Self>(),
-                v
-            ))),
-        }
-    }
-}
-
 impl<T: TryExtractFrom<Value> + StoreWrapped> TryExtractFrom<Vec<Value>> for Vec<T> {
     fn try_extract_from(v: Vec<Value>) -> Result<Self, TryExtractFromError> {
         v.into_iter().map(|it| it.try_extract_into::<T>()).collect()
     }
 }
-
-// impl TryExtractFrom<Value> for Rc<Context> {
-//     fn try_extract_from(v: Value) -> Result<Self, TryExtractFromError> {
-//         match v {
-//             Value::Context(ctx) => Ok(ctx),
-//             _ => Err(TryExtractFromError(format!(
-//                 "expected Context, found {:?}",
-//                 v
-//             ))),
-//         }
-//     }
-// }
 
 impl<T: TryExtractFrom<Value>> TryExtractFrom<Value> for Option<T> {
     fn try_extract_from(v: Value) -> Result<Self, TryExtractFromError> {

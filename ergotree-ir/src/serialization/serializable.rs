@@ -1,16 +1,13 @@
 //! Serialization of Ergo types
 use crate::chain::ergo_box::RegisterValueError;
 use crate::ergo_tree::ErgoTreeHeaderError;
-use crate::mir::val_def::ValId;
 use crate::mir::{constant::TryExtractFromError, expr::InvalidArgumentError};
-use crate::types::type_unify::TypeUnificationError;
 
 use super::{
     constant_store::ConstantStore,
     sigma_byte_reader::{SigmaByteRead, SigmaByteReader},
     sigma_byte_writer::{SigmaByteWrite, SigmaByteWriter},
 };
-use crate::types::smethod::MethodId;
 use bounded_vec::BoundedVec;
 use bounded_vec::BoundedVecOutOfBounds;
 use io::Cursor;
@@ -78,15 +75,9 @@ pub enum SigmaParsingError {
     /// Tuple items out of bounds
     #[error("Tuple items out of bounds: {0}")]
     TupleItemsOutOfBounds(usize),
-    /// ValDef type for a given index not found in ValDefTypeStore store
-    #[error("ValDef type for an index {0:?} not found in ValDefTypeStore store")]
-    ValDefIdNotFound(ValId),
     /// Invalid argument on node creation
     #[error("Invalid argument: {0:?}")]
     InvalidArgument(#[from] InvalidArgumentError),
-    /// Unknown method ID for given type code
-    #[error("No method id {0:?} found in type companion with type id {1:?} ")]
-    UnknownMethodId(MethodId, u8),
     /// Feature not supported
     #[error("parsing not supported: {0}")]
     NotSupported(&'static str),
@@ -116,12 +107,6 @@ impl From<io::Error> for SigmaParsingError {
 impl From<&io::Error> for SigmaParsingError {
     fn from(error: &io::Error) -> Self {
         SigmaParsingError::Io(error.to_string())
-    }
-}
-
-impl From<TypeUnificationError> for SigmaParsingError {
-    fn from(e: TypeUnificationError) -> Self {
-        SigmaParsingError::Misc(format!("{:?}", e))
     }
 }
 

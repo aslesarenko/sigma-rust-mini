@@ -3,7 +3,6 @@
 
 use std::rc::Rc;
 
-use ergotree_interpreter::eval::env::Env;
 use ergotree_interpreter::eval::reduce_to_crypto;
 use ergotree_interpreter::sigma_protocol::prover::ContextExtension;
 use ergotree_interpreter::sigma_protocol::prover::ProverError;
@@ -84,7 +83,7 @@ pub fn reduce_tx(
                 .proposition()
                 .map_err(ProverError::ErgoTreeError)
                 .map_err(|e| TxSigningError::ProverError(e, idx))?;
-            let reduction_result = reduce_to_crypto(&expr, &Env::empty(), ctx)
+            let reduction_result = reduce_to_crypto(&expr, ctx)
                 .map_err(ProverError::EvalError)
                 .map_err(|e| TxSigningError::ProverError(e, idx))?;
             Ok(ReducedInput {

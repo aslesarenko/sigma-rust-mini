@@ -40,7 +40,7 @@ miette = { workspace = true }
 hashbrown = "0.14.1"
 
 [features]
-default = ["json"]
+default = ["json", "arbitrary"]
 json = ["serde", "serde_json", "serde_with", "bounded-vec/serde"]
 arbitrary = [
     "proptest",
@@ -52,7 +52,6 @@ arbitrary = [
 
 [dev-dependencies]
 ergotree-ir = { workspace = true, features = ["arbitrary"] }
-ergoscript-compiler = { workspace = true }
 proptest = { workspace = true }
 sigma-test-util = { workspace = true }
 expect-test = { workspace = true }

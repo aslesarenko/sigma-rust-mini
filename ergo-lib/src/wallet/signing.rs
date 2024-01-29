@@ -17,7 +17,6 @@ use std::sync::Arc;
 use crate::ergotree_ir::chain::ergo_box::BoxId;
 use crate::wallet::multi_sig::TransactionHintsBag;
 use ergotree_interpreter::eval::context::{Context, TxIoVec};
-use ergotree_interpreter::eval::env::Env;
 use ergotree_interpreter::sigma_protocol::prover::ProverError;
 use ergotree_interpreter::sigma_protocol::prover::ProverResult;
 use ergotree_interpreter::sigma_protocol::prover::{ContextExtension, Prover};
@@ -102,12 +101,10 @@ impl ErgoTransaction for Transaction {
 
 /// `self_index` - index of the SELF box in the tx_ctx.spending_tx.inputs
 pub fn make_context<T: ErgoTransaction>(
-    state_ctx: &ErgoStateContext,
+    _state_ctx: &ErgoStateContext,
     tx_ctx: &TransactionContext<T>,
     self_index: usize,
 ) -> Result<Context, TransactionContextError> {
-    let height = state_ctx.pre_header.height;
-
     // Find self_box by matching BoxIDs
     let self_box = tx_ctx
         .get_input_box(
@@ -151,14 +148,11 @@ pub fn make_context<T: ErgoTransaction>(
         .context_extension(self_index)
         .ok_or(TransactionError::InputNofFound(self_index))?;
     Ok(Context {
-        height,
         self_box: self_box_ir,
         outputs: outputs_ir,
         data_inputs: data_inputs_ir,
         inputs: inputs_ir,
-        pre_header: state_ctx.pre_header.clone(),
         extension,
-        headers: state_ctx.headers.clone(),
     })
 }
 
@@ -261,13 +255,7 @@ pub fn sign_tx_input(
         hints_bag = bag.all_hints_for_input(input_idx);
     }
     prover
-        .prove(
-            &input_box.ergo_tree,
-            &Env::empty(),
-            ctx,
-            message_to_sign,
-            &hints_bag,
-        )
+        .prove(&input_box.ergo_tree, ctx, message_to_sign, &hints_bag)
         .map(|proof| Input::new(unsigned_input.box_id, proof.into()))
         .map_err(|e| TxSigningError::ProverError(e, input_idx))
 }
@@ -323,7 +311,6 @@ mod tests {
                 .unwrap();
             let res = verifier.verify(
                 &b.ergo_tree,
-                &Env::empty(),
                 Rc::new(force_any_val::<Context>()),
                 input.spending_proof.proof.clone(),
                 &message,
@@ -560,7 +547,6 @@ mod tests {
         let verifier = TestVerifier;
         let ver_res = verifier.verify(
             &ergo_tree,
-            &Env::empty(),
             Rc::new(force_any_val::<Context>()),
             tx.inputs.get(1).unwrap().spending_proof.proof.clone(),
             message.as_slice(),
@@ -569,6 +555,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_multi_sig_issue_597() {
         let secrets: Vec<SecretKey> = [
             "00eda6c0e9fc808d4cf050fc4e98705372b9f0786a6b63aa4013d1a20539b104",

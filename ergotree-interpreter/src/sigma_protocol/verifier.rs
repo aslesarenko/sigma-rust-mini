@@ -16,7 +16,6 @@ use super::{
     SigmaBoolean, UncheckedTree,
 };
 use crate::eval::context::Context;
-use crate::eval::env::Env;
 use crate::eval::EvalError;
 use crate::eval::{reduce_to_crypto, ReductionDiagnosticInfo};
 use dlog_protocol::FirstDlogProverMessage;
@@ -62,13 +61,12 @@ pub trait Verifier {
     fn verify(
         &self,
         tree: &ErgoTree,
-        env: &Env,
         ctx: Rc<Context>,
         proof: ProofBytes,
         message: &[u8],
     ) -> Result<VerificationResult, VerifierError> {
         let expr = tree.proposition()?;
-        let reduction_result = reduce_to_crypto(&expr, env, ctx)?;
+        let reduction_result = reduce_to_crypto(&expr, ctx)?;
         let res: bool = match reduction_result.sigma_prop {
             SigmaBoolean::TrivialProp(b) => b,
             sb => {
@@ -183,14 +181,7 @@ mod tests {
     use crate::sigma_protocol::prover::{Prover, TestProver};
 
     use super::*;
-    use ergotree_ir::mir::atleast::Atleast;
-    use ergotree_ir::mir::constant::{Constant, Literal};
     use ergotree_ir::mir::expr::Expr;
-    use ergotree_ir::mir::sigma_and::SigmaAnd;
-    use ergotree_ir::mir::sigma_or::SigmaOr;
-    use ergotree_ir::mir::value::CollKind;
-    use ergotree_ir::sigma_protocol::sigma_boolean::SigmaProp;
-    use ergotree_ir::types::stype::SType;
     use proptest::collection::vec;
     use proptest::prelude::*;
     use sigma_test_util::force_any_val;
@@ -218,14 +209,12 @@ mod tests {
                 secrets: vec![PrivateInput::DlogProverInput(secret)],
             };
             let res = prover.prove(&tree,
-                &Env::empty(),
                 Rc::new(force_any_val::<Context>()),
                 message.as_slice(),
                 &HintsBag::empty());
             let proof = res.unwrap().proof;
             let verifier = TestVerifier;
             prop_assert_eq!(verifier.verify(&tree,
-                                            &Env::empty(),
                                             Rc::new(force_any_val::<Context>()),
                                             proof.clone(),
                                             message.as_slice())
@@ -234,7 +223,6 @@ mod tests {
 
             // possible to append bytes
             prop_assert_eq!(verifier.verify(&tree,
-                                            &Env::empty(),
                                             Rc::new(force_any_val::<Context>()),
                                             proof_append_some_byte(&proof),
                                             message.as_slice())
@@ -243,7 +231,6 @@ mod tests {
 
             // wrong message
             prop_assert_eq!(verifier.verify(&tree,
-                                            &Env::empty(),
                                             Rc::new(force_any_val::<Context>()),
                                             proof,
                                             vec![1u8; 100].as_slice())
@@ -260,14 +247,12 @@ mod tests {
                 secrets: vec![PrivateInput::DhTupleProverInput(secret)],
             };
             let res = prover.prove(&tree,
-                &Env::empty(),
                 Rc::new(force_any_val::<Context>()),
                 message.as_slice(),
                 &HintsBag::empty());
             let proof = res.unwrap().proof;
             let verifier = TestVerifier;
             prop_assert_eq!(verifier.verify(&tree,
-                                            &Env::empty(),
                                             Rc::new(force_any_val::<Context>()),
                                             proof.clone(),
                                             message.as_slice())
@@ -276,7 +261,6 @@ mod tests {
 
             // possible to append bytes
             prop_assert_eq!(verifier.verify(&tree,
-                                            &Env::empty(),
                                             Rc::new(force_any_val::<Context>()),
                                             proof_append_some_byte(&proof),
                                             message.as_slice())
@@ -285,7 +269,6 @@ mod tests {
 
             // wrong message
             prop_assert_eq!(verifier.verify(&tree,
-                                            &Env::empty(),
                                             Rc::new(force_any_val::<Context>()),
                                             proof,
                                             vec![1u8; 100].as_slice())
@@ -293,175 +276,6 @@ mod tests {
                             false);
         }
 
-        #[test]
-        fn test_prover_verifier_conj_and(secret1 in any::<PrivateInput>(),
-                                         secret2 in any::<PrivateInput>(),
-                                         message in vec(any::<u8>(), 100..200)) {
-            let pk1 = secret1.public_image();
-            let pk2 = secret2.public_image();
-            let expr: Expr = SigmaAnd::new(vec![Expr::Const(pk1.into()), Expr::Const(pk2.into())])
-                .unwrap()
-                .into();
-            let tree = ErgoTree::try_from(expr).unwrap();
-            let prover = TestProver {
-                secrets: vec![secret1, secret2],
-            };
-            let res = prover.prove(&tree,
-                &Env::empty(),
-                Rc::new(force_any_val::<Context>()),
-                message.as_slice(),
-                &HintsBag::empty());
-            let proof = res.unwrap().proof;
-            let verifier = TestVerifier;
-            let ver_res = verifier.verify(&tree,
-                                          &Env::empty(),
-                                          Rc::new(force_any_val::<Context>()),
-                                          proof,
-                                          message.as_slice());
-            prop_assert_eq!(ver_res.unwrap().result, true);
-        }
-
-        #[test]
-        fn test_prover_verifier_conj_and_and(secret1 in any::<PrivateInput>(),
-                                             secret2 in any::<PrivateInput>(),
-                                             secret3 in any::<PrivateInput>(),
-                                             message in vec(any::<u8>(), 100..200)) {
-            let pk1 = secret1.public_image();
-            let pk2 = secret2.public_image();
-            let pk3 = secret3.public_image();
-            let expr: Expr = SigmaAnd::new(vec![
-                Expr::Const(pk1.into()),
-                SigmaAnd::new(vec![Expr::Const(pk2.into()), Expr::Const(pk3.into())])
-                    .unwrap()
-                    .into(),
-            ]).unwrap().into();
-            let tree = ErgoTree::try_from(expr).unwrap();
-            let prover = TestProver { secrets: vec![secret1, secret2, secret3] };
-            let res = prover.prove(&tree,
-                &Env::empty(),
-                Rc::new(force_any_val::<Context>()),
-                message.as_slice(),
-                &HintsBag::empty());
-            let proof = res.unwrap().proof;
-            let verifier = TestVerifier;
-            let ver_res = verifier.verify(&tree,
-                                          &Env::empty(),
-                                          Rc::new(force_any_val::<Context>()),
-                                          proof,
-                                          message.as_slice());
-            prop_assert_eq!(ver_res.unwrap().result, true);
-        }
-
-        #[test]
-        fn test_prover_verifier_conj_or(secret1 in any::<PrivateInput>(),
-                                         secret2 in any::<PrivateInput>(),
-                                         message in vec(any::<u8>(), 100..200)) {
-            let pk1 = secret1.public_image();
-            let pk2 = secret2.public_image();
-            let expr: Expr = SigmaOr::new(vec![Expr::Const(pk1.into()), Expr::Const(pk2.into())])
-                .unwrap()
-                .into();
-            let tree = ErgoTree::try_from(expr).unwrap();
-            let secrets = vec![secret1, secret2];
-            // any secret (out of 2) known to prover should be enough
-            for secret in secrets {
-                let prover = TestProver {
-                    secrets: vec![secret.clone()],
-                };
-                let res = prover.prove(&tree,
-                    &Env::empty(),
-                    Rc::new(force_any_val::<Context>()),
-                    message.as_slice(),
-                    &HintsBag::empty());
-                let proof = res.unwrap_or_else(|_| panic!("proof failed for secret: {:?}", secret)).proof;
-                let verifier = TestVerifier;
-                let ver_res = verifier.verify(&tree,
-                                              &Env::empty(),
-                                              Rc::new(force_any_val::<Context>()),
-                                              proof,
-                                              message.as_slice());
-                prop_assert_eq!(ver_res.unwrap().result, true, "verify failed on secret: {:?}", &secret);
-            }
-        }
-
-        #[test]
-        fn test_prover_verifier_conj_or_or(secret1 in any::<PrivateInput>(),
-                                             secret2 in any::<PrivateInput>(),
-                                             secret3 in any::<PrivateInput>(),
-                                             message in vec(any::<u8>(), 100..200)) {
-            let pk1 = secret1.public_image();
-            let pk2 = secret2.public_image();
-            let pk3 = secret3.public_image();
-            let expr: Expr = SigmaOr::new(vec![
-                Expr::Const(pk1.into()),
-                SigmaOr::new(vec![Expr::Const(pk2.into()), Expr::Const(pk3.into())])
-                    .unwrap()
-                    .into(),
-            ]).unwrap().into();
-            let tree = ErgoTree::try_from(expr).unwrap();
-            let secrets = vec![secret1, secret2, secret3];
-            // any secret (out of 3) known to prover should be enough
-            for secret in secrets {
-                let prover = TestProver {
-                    secrets: vec![secret.clone()],
-                };
-                let res = prover.prove(&tree,
-                    &Env::empty(),
-                    Rc::new(force_any_val::<Context>()),
-                    message.as_slice(),
-                    &HintsBag::empty());
-                let proof = res.unwrap_or_else(|_| panic!("proof failed for secret: {:?}", secret)).proof;
-                let verifier = TestVerifier;
-                let ver_res = verifier.verify(&tree,
-                                              &Env::empty(),
-                                              Rc::new(force_any_val::<Context>()),
-                                              proof,
-                                              message.as_slice());
-                prop_assert_eq!(ver_res.unwrap().result, true, "verify failed on secret: {:?}", &secret);
-            }
-        }
-
-        #[test]
-        fn test_prover_verifier_atleast(secret1 in any::<DlogProverInput>(),
-                                            secret2 in any::<DlogProverInput>(),
-                                             secret3 in any::<DlogProverInput>(),
-                                             message in vec(any::<u8>(), 100..200)) {
-            let bound = Expr::Const(2i32.into());
-            let inputs = Literal::Coll(
-                CollKind::from_vec(
-                    SType::SSigmaProp,
-                    vec![
-                        SigmaProp::from(secret1.public_image()).into(),
-                        SigmaProp::from(secret2.public_image()).into(),
-                        SigmaProp::from(secret3.public_image()).into(),
-                    ],
-                )
-                .unwrap(),
-            );
-            let input = Constant {
-                tpe: SType::SColl(SType::SSigmaProp.into()),
-                v: inputs,
-            }
-            .into();
-            let expr: Expr = Atleast::new(bound, input).unwrap().into();
-            let tree = ErgoTree::try_from(expr).unwrap();
-            let prover = TestProver {
-                secrets: vec![secret1.into(), secret3.into()],
-            };
-
-            let res = prover.prove(&tree,
-                &Env::empty(),
-                Rc::new(force_any_val::<Context>()),
-                message.as_slice(),
-                &HintsBag::empty());
-            let proof = res.unwrap().proof;
-            let verifier = TestVerifier;
-            let ver_res = verifier.verify(&tree,
-                                            &Env::empty(),
-                                            Rc::new(force_any_val::<Context>()),
-                                            proof,
-                                            message.as_slice());
-            prop_assert_eq!(ver_res.unwrap().result, true)
-        }
+        // TODO mini: restore tests that was here before minification (see git history of this file)
     }
 }

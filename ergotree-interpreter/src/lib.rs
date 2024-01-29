@@ -19,7 +19,6 @@
 #![deny(clippy::unreachable)]
 #![deny(clippy::panic)]
 
-mod contracts;
 mod util;
 
 pub mod eval;
