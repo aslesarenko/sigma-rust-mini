@@ -43,14 +43,6 @@ pub enum SType {
     SColl(Box<SType>),
     /// Tuple (elements can have different types)
     STuple(STuple),
-    /// Context object ("CONTEXT" in ErgoScript)
-    SContext,
-    /// Header of a block
-    SHeader,
-    /// Header of a block without solved mining puzzle
-    SPreHeader,
-    /// Data type introduced to unify handling of global and non-global (i.e. methods) operations.
-    SGlobal,
 }
 
 impl SType {
@@ -74,11 +66,7 @@ impl SType {
                 | SType::SAny
                 | SType::SGroupElement
                 | SType::SSigmaProp
-                | SType::SContext
                 | SType::SBoolean
-                | SType::SHeader
-                | SType::SPreHeader
-                | SType::SGlobal
         )
     }
 }
@@ -105,10 +93,6 @@ impl std::fmt::Display for SType {
             SType::SOption(t) => write!(f, "Option[{}]", t),
             SType::SColl(t) => write!(f, "Coll[{}]", t),
             SType::STuple(t) => write!(f, "{}", t),
-            SType::SContext => write!(f, "Context"),
-            SType::SHeader => write!(f, "Header"),
-            SType::SPreHeader => write!(f, "PreHeader"),
-            SType::SGlobal => write!(f, "Global"),
         }
     }
 }
@@ -235,10 +219,6 @@ pub(crate) mod tests {
             Just(SType::SBigInt),
             Just(SType::SGroupElement),
             Just(SType::SSigmaProp),
-            Just(SType::SContext),
-            Just(SType::SHeader),
-            Just(SType::SPreHeader),
-            Just(SType::SGlobal),
         ]
         .boxed()
     }

@@ -148,10 +148,6 @@ impl DataSerializer {
             }
             SAny => return Err(SigmaParsingError::NotSupported("SAny data")),
             SOption(_) => return Err(SigmaParsingError::NotSupported("SOption data")),
-            SContext => return Err(SigmaParsingError::NotSupported("SContext data")),
-            SHeader => return Err(SigmaParsingError::NotSupported("SHeader data")),
-            SPreHeader => return Err(SigmaParsingError::NotSupported("SPreHeader data")),
-            SGlobal => return Err(SigmaParsingError::NotSupported("SGlobal data")),
         })
     }
 }
