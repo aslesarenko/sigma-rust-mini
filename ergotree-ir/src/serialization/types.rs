@@ -6,7 +6,6 @@ use crate::serialization::{
 };
 use crate::types::stuple;
 use crate::types::stype::SType;
-use crate::types::stype_param;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use std::convert::TryInto;
@@ -102,7 +101,6 @@ pub enum TypeCode {
     SUNIT = 98,
     SCONTEXT = 101,
     // SSTRING = 102,
-    STYPE_VAR = 103,
     SHEADER = 104,
     SPRE_HEADER = 105,
     SGLOBAL = 106,
@@ -315,7 +313,6 @@ impl SType {
             TypeCode::SANY => SAny,
             TypeCode::SUNIT => SUnit,
             TypeCode::SCONTEXT => SContext,
-            TypeCode::STYPE_VAR => STypeVar(stype_param::STypeVar::sigma_parse(r)?),
             TypeCode::SHEADER => SHeader,
             TypeCode::SPRE_HEADER => SPreHeader,
             TypeCode::SGLOBAL => SGlobal,
@@ -369,7 +366,7 @@ impl SigmaSerializable for SType {
                     SBigInt => TypeCode::OPTION_COLL_BIGINT.sigma_serialize(w),
                     SGroupElement => TypeCode::OPTION_COLL_GROUP_ELEMENT.sigma_serialize(w),
                     SSigmaProp => TypeCode::OPTION_COLL_SIGMAPROP.sigma_serialize(w),
-                    STypeVar(_) | SAny | SUnit | SOption(_) | SColl(_) | STuple(_) | SContext
+                    SAny | SUnit | SOption(_) | SColl(_) | STuple(_) | SContext
                     | SHeader | SPreHeader | SGlobal => {
                         // if not "embeddable" type fallback to generic Option type code following
                         // elem type code
@@ -377,7 +374,7 @@ impl SigmaSerializable for SType {
                         elem_type.sigma_serialize(w)
                     }
                 },
-                STypeVar(_) | SAny | SUnit | SOption(_) | STuple(_) | SContext | SHeader
+                SAny | SUnit | SOption(_) | STuple(_) | SContext | SHeader
                 | SPreHeader | SGlobal => {
                     // if not "embeddable" type fallback to generic Option type code following
                     // elem type code
@@ -404,7 +401,7 @@ impl SigmaSerializable for SType {
                     SBigInt => TypeCode::NESTED_COLL_BIGINT.sigma_serialize(w),
                     SGroupElement => TypeCode::NESTED_COLL_GROUP_ELEMENT.sigma_serialize(w),
                     SSigmaProp => TypeCode::NESTED_COLL_SIGMAPROP.sigma_serialize(w),
-                    STypeVar(_) | SAny | SUnit | SOption(_) | SColl(_) | STuple(_) | SContext
+                    SAny | SUnit | SOption(_) | SColl(_) | STuple(_) | SContext
                     | SHeader | SPreHeader | SGlobal => {
                         // if not "embeddable" type fallback to generic Coll type code following
                         // elem type code
@@ -412,7 +409,7 @@ impl SigmaSerializable for SType {
                         elem_type.sigma_serialize(w)
                     }
                 },
-                STypeVar(_) | SAny | SUnit | SOption(_) | STuple(_) | SContext | SHeader
+                SAny | SUnit | SOption(_) | STuple(_) | SContext | SHeader
                 | SPreHeader | SGlobal => {
                     // if not "embeddable" type fallback to generic Coll type code following
                     // elem type code
@@ -500,9 +497,9 @@ impl SigmaSerializable for SType {
                         t1.sigma_serialize(w)
                     }
                     (
-                        STypeVar(_) | SAny | SUnit | SOption(_) | SColl(_) | STuple(_) | SContext
+                        SAny | SUnit | SOption(_) | SColl(_) | STuple(_) | SContext
                         | SHeader | SPreHeader | SGlobal,
-                        STypeVar(_) | SAny | SUnit | SOption(_) | SColl(_) | STuple(_) | SContext
+                        SAny | SUnit | SOption(_) | SColl(_) | STuple(_) | SContext
                         | SHeader | SPreHeader | SGlobal,
                     ) => {
                         // Pair of non-primitive types (`(SBox, SAvlTree)`, `((Int, Byte), (Boolean,Box))`, etc.)
@@ -530,11 +527,6 @@ impl SigmaSerializable for SType {
                     items.iter().try_for_each(|i| i.sigma_serialize(w))
                 }
             },
-
-            SType::STypeVar(tv) => {
-                TypeCode::STYPE_VAR.sigma_serialize(w)?;
-                tv.sigma_serialize(w)
-            }
         }
     }
 

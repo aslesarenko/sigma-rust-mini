@@ -13,13 +13,10 @@ use crate::sigma_protocol::sigma_boolean::{ProveDhTuple, ProveDlog};
 use ergo_chain_types::EcPoint;
 
 use super::stuple::STuple;
-use super::stype_param::STypeVar;
 
 /// Every type descriptor is a tree represented by nodes in SType hierarchy.
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum SType {
-    /// Type variable (generic)
-    STypeVar(STypeVar),
     /// TBD
     SAny,
     /// Unit struct
@@ -92,16 +89,9 @@ impl From<STuple> for SType {
     }
 }
 
-impl From<STypeVar> for SType {
-    fn from(v: STypeVar) -> Self {
-        SType::STypeVar(v)
-    }
-}
-
 impl std::fmt::Display for SType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SType::STypeVar(t) => write!(f, "{}", t.as_string()),
             SType::SAny => write!(f, "Any"),
             SType::SUnit => write!(f, "Unit"),
             SType::SBoolean => write!(f, "Boolean"),
@@ -258,7 +248,7 @@ pub(crate) mod tests {
         type Strategy = BoxedStrategy<Self>;
 
         fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
-            prop_oneof![primitive_type(), Just(SType::STypeVar(STypeVar::t())),]
+            prop_oneof![primitive_type(),]
                 .prop_recursive(
                     4,  // no more than this branches deep
                     64, // total elements target

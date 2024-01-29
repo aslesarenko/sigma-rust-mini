@@ -146,7 +146,6 @@ impl DataSerializer {
                 // is correct
                 Literal::Tup(items.try_into()?)
             }
-            STypeVar(_) => return Err(SigmaParsingError::NotSupported("TypeVar data")),
             SAny => return Err(SigmaParsingError::NotSupported("SAny data")),
             SOption(_) => return Err(SigmaParsingError::NotSupported("SOption data")),
             SContext => return Err(SigmaParsingError::NotSupported("SContext data")),
