@@ -2,7 +2,6 @@
 use crate::chain::ergo_box::RegisterValueError;
 use crate::ergo_tree::ErgoTreeHeaderError;
 use crate::mir::{constant::TryExtractFromError, expr::InvalidArgumentError};
-use crate::types::type_unify::TypeUnificationError;
 
 use super::{
     constant_store::ConstantStore,
@@ -108,12 +107,6 @@ impl From<io::Error> for SigmaParsingError {
 impl From<&io::Error> for SigmaParsingError {
     fn from(error: &io::Error) -> Self {
         SigmaParsingError::Io(error.to_string())
-    }
-}
-
-impl From<TypeUnificationError> for SigmaParsingError {
-    fn from(e: TypeUnificationError) -> Self {
-        SigmaParsingError::Misc(format!("{:?}", e))
     }
 }
 
